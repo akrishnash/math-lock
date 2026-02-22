@@ -21,7 +21,22 @@ npx expo start
 
 Press `i` for iOS Simulator, `a` for Android emulator, or scan the QR code with Expo Go.
 
-## Shut down all apps (full focus mode)
+## App blocking (Android only)
+
+When you enable TikTok, Instagram, Reddit, or YouTube as "apps to block" and start a lockdown, Math Lock will:
+
+1. **Request Usage Access** — On first use, you’ll be asked to enable Usage Access for Math Lock in Settings.
+2. **Monitor in foreground** — A foreground service runs while the lockdown is active.
+3. **Intercept blocked apps** — If you open a blocked app (e.g. Instagram), Math Lock will open over it and show the "NICE TRY." intervention screen.
+
+**Note:** This uses the Usage Access API and only works in a development/production build (`eas build` or `npx expo run:android`), not in Expo Go.
+
+**If blocking still doesn't work:**
+1. **Battery optimization** — Some devices kill background services. Go to Settings → Apps → Math Lock → Battery → set to "Unrestricted" or "Don't optimize". Or tap the Settings icon in the app (when available) to open battery settings.
+2. **Usage Access** — Confirm Math Lock has "Permit usage access" in Settings → Apps → Special app access → Usage access.
+3. **Manufacturer settings** — On Xiaomi, Oppo, etc., you may need to allow "Autostart" or add Math Lock to "Protected apps" so the service isn't killed.
+
+## Screen pinning (full focus mode)
 
 To keep only Math Lock on screen during the timer:
 

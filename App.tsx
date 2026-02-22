@@ -4,12 +4,13 @@ import { useFonts, SpaceMono_400Regular, SpaceMono_700Bold } from '@expo-google-
 import { Inter_400Regular, Inter_500Medium } from '@expo-google-fonts/inter';
 import * as SplashScreen from 'expo-splash-screen';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { AppState, AppStateStatus } from 'react-native';
+import { AppState, AppStateStatus, Platform, Alert } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import { Dashboard } from './src/screens/Dashboard';
 import { Intervention } from './src/screens/Intervention';
 import { MathChallenge } from './src/screens/MathChallenge';
+import { appBlocking, APP_PACKAGES, APP_PACKAGE_ALIASES } from './src/native/AppBlocking';
 
 const LOCKDOWN_END_KEY = 'lockdownEnd';
 const LOCKED_APPS_KEY = 'lockedApps';
@@ -46,13 +47,29 @@ export default function App() {
   useEffect(() => {
     const load = async () => {
       const stored = await AsyncStorage.getItem(LOCKDOWN_END_KEY);
+      const lockedJson = await AsyncStorage.getItem(LOCKED_APPS_KEY);
       if (stored) {
         const end = parseInt(stored, 10);
         if (end > Date.now()) {
           setLockdownEnd(end);
           setScreen('intervention');
+          if (Platform.OS === 'android' && appBlocking && lockedJson) {
+            try {
+              const apps = JSON.parse(lockedJson) as { id: string }[];
+              const packageIds = apps.flatMap((a) => {
+              const aliases = APP_PACKAGE_ALIASES[a.id];
+              return aliases ?? (APP_PACKAGES[a.id] ? [APP_PACKAGES[a.id]] : []);
+            });
+              if (packageIds.length > 0) {
+                await appBlocking.startBlockingService(packageIds);
+              }
+            } catch (_) {}
+          }
         } else {
           await AsyncStorage.multiRemove([LOCKDOWN_END_KEY, LOCKED_APPS_KEY]);
+          if (Platform.OS === 'android' && appBlocking) {
+            await appBlocking.stopBlockingService();
+          }
         }
       }
     };
@@ -66,19 +83,26 @@ export default function App() {
     }
   }, [screen]);
 
+  const endLockdown = useCallback(async () => {
+    if (Platform.OS === 'android' && appBlocking) {
+      await appBlocking.stopBlockingService();
+    }
+    await AsyncStorage.multiRemove([LOCKDOWN_END_KEY, LOCKED_APPS_KEY]);
+    setLockdownEnd(null);
+    setScreen('dashboard');
+  }, []);
+
   useEffect(() => {
     if (!lockdownEnd || screen !== 'intervention') return;
     const tick = () => {
       if (!updateTimer(lockdownEnd)) {
-        AsyncStorage.multiRemove([LOCKDOWN_END_KEY, LOCKED_APPS_KEY]);
-        setLockdownEnd(null);
-        setScreen('dashboard');
+        endLockdown();
       }
     };
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, [lockdownEnd, screen, updateTimer]);
+  }, [lockdownEnd, screen, updateTimer, endLockdown]);
 
   useEffect(() => {
     if (lockdownEnd && screen === 'intervention') {
@@ -102,25 +126,60 @@ export default function App() {
   }, [fontsLoaded]);
 
   const handleStartLockdown = useCallback(
-    async (hours: number, minutes: number, _apps: unknown[]) => {
+    async (hours: number, minutes: number, apps: { id: string; enabled: boolean }[]) => {
       const totalSeconds = hours * 3600 + minutes * 60;
       const end = Date.now() + totalSeconds * 1000;
+      const enabledApps = apps.filter((a) => a.enabled);
+      const packageIds = enabledApps.flatMap((a) => {
+        const aliases = APP_PACKAGE_ALIASES[a.id];
+        return aliases ?? (APP_PACKAGES[a.id] ? [APP_PACKAGES[a.id]] : []);
+      });
+
+      if (Platform.OS === 'android' && appBlocking && packageIds.length > 0) {
+        const hasPermission = await appBlocking.checkUsagePermission();
+        if (!hasPermission) {
+          Alert.alert(
+            'Usage Access Required',
+            'Math Lock needs Usage Access to block apps. Tap OK to open Settings, enable access for Math Lock, then return and try again.',
+            [
+              { text: 'Cancel', style: 'cancel' },
+              { text: 'OK', onPress: () => appBlocking.openUsageAccessSettings() },
+            ]
+          );
+          return;
+        }
+        await appBlocking.startBlockingService(packageIds);
+      }
+
       await AsyncStorage.setItem(LOCKDOWN_END_KEY, end.toString());
+      await AsyncStorage.setItem(LOCKED_APPS_KEY, JSON.stringify(enabledApps));
       setLockdownEnd(end);
       setScreen('intervention');
     },
     []
   );
 
+  const handleOpenSettings = useCallback(() => {
+    if (Platform.OS === 'android' && appBlocking) {
+      Alert.alert(
+        'App Blocking Settings',
+        'If Instagram/other apps aren\'t being blocked, ensure these permissions:',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Usage Access', onPress: () => appBlocking.openUsageAccessSettings() },
+          { text: 'Battery (Don\'t optimize)', onPress: () => appBlocking.openBatteryOptimizationSettings() },
+        ]
+      );
+    }
+  }, []);
+
   const handleDesperate = useCallback(() => {
     setScreen('challenge');
   }, []);
 
   const handleMathCorrect = useCallback(async () => {
-    await AsyncStorage.multiRemove([LOCKDOWN_END_KEY, LOCKED_APPS_KEY]);
-    setLockdownEnd(null);
-    setScreen('dashboard');
-  }, []);
+    await endLockdown();
+  }, [endLockdown]);
 
   const handleAddTime = useCallback(async (minutes: number) => {
     const stored = await AsyncStorage.getItem(LOCKDOWN_END_KEY);
@@ -139,7 +198,7 @@ export default function App() {
       {screen === 'dashboard' && (
         <Dashboard
           onStartLockdown={handleStartLockdown}
-          onOpenSettings={() => {}}
+          onOpenSettings={handleOpenSettings}
         />
       )}
       {screen === 'intervention' && (
