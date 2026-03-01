@@ -65,7 +65,7 @@ class BlockScreen extends ConsumerWidget {
               FilledButton(
                 onPressed: () {
                   context.push(
-                    '/problem',
+                      '/challenge',
                     extra: ProblemScreenArgs(
                       packageName: packageName,
                       appLabel: appLabel,

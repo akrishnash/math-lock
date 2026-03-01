@@ -1,23 +1,29 @@
-package com.mathlock.math_lock
+package com.earnyourscreen.app
 
+import android.util.Log
+import android.app.usage.UsageStatsManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.drawable.BitmapDrawable
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.app.usage.UsageStatsManager
-import android.content.Context
-import android.content.pm.PackageManager
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodChannel
+import java.io.ByteArrayOutputStream
 
 class MainActivity : FlutterActivity() {
 
   private var blockedAppEventSink: EventChannel.EventSink? = null
-  private val channelName = "com.mathlock.math_lock/zen"
-  private val eventChannelName = "com.mathlock.math_lock/blocked_app"
+  private val channelName = "com.earnyourscreen.app/zen"
+  private val eventChannelName = "com.earnyourscreen.app/blocked_app"
 
   override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
     super.configureFlutterEngine(flutterEngine)
@@ -61,8 +67,17 @@ class MainActivity : FlutterActivity() {
         "startZenMonitoring" -> {
           val blocked = call.argument<List<String>>("blockedPackageNames") ?: emptyList()
           val sessionEndMillis = (call.argument<Number>("sessionEndMillis"))?.toLong() ?: 0L
+          val allowReopenWithinWindow =
+            call.argument<Boolean>("allowReopenWithinWindow") ?: false
+          val fullLock = call.argument<Boolean>("fullLock") ?: false
           ZenNotificationListenerService.setBlockedPackages(this, blocked.toSet())
-          ZenMonitorService.start(this, blocked, sessionEndMillis)
+          ZenMonitorService.start(
+            this,
+            blocked,
+            sessionEndMillis,
+            allowReopenWithinWindow,
+            fullLock
+          )
           result.success(null)
         }
         "stopZenMonitoring" -> {
@@ -76,8 +91,28 @@ class MainActivity : FlutterActivity() {
           ZenMonitorService.allowPackageForMinutes(this, pkg, minutes)
           result.success(null)
         }
+        "allowFullUnlockForMinutes" -> {
+          val minutes = (call.argument<Number>("minutes"))?.toInt() ?: 0
+          ZenMonitorService.allowFullUnlockForMinutes(this, minutes)
+          result.success(null)
+        }
         "getPendingUnlockIntent" -> {
           result.success(consumePendingUnlockIntent())
+        }
+        "launchApp" -> {
+          val pkg = call.argument<String>("packageName") ?: ""
+          try {
+            val launchIntent = packageManager.getLaunchIntentForPackage(pkg)
+            if (launchIntent != null) {
+              launchIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+              startActivity(launchIntent)
+              result.success(null)
+            } else {
+              result.error("NO_LAUNCHER", "No launcher intent for $pkg", null)
+            }
+          } catch (e: Exception) {
+            result.error("ERROR", e.message, null)
+          }
         }
         else -> result.notImplemented()
       }
@@ -98,41 +133,98 @@ class MainActivity : FlutterActivity() {
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+    Log.d(TAG, "onCreate intent extras: ${intent?.extras?.keySet()}")
     captureUnlockIntent(intent)
   }
 
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     setIntent(intent)
+    Log.d(TAG, "onNewIntent unlock_for_package=${intent.getStringExtra("unlock_for_package")}")
     captureUnlockIntent(intent)
   }
 
   private fun captureUnlockIntent(intent: Intent?) {
     val pkg = intent?.getStringExtra("unlock_for_package") ?: return
+    Log.d(TAG, "captureUnlockIntent: pkg=$pkg timesUp=${intent.getBooleanExtra("times_up", false)}")
     pendingUnlockIntent = mapOf(
       "packageName" to pkg,
       "appLabel" to (intent.getStringExtra("unlock_app_label") ?: pkg),
       "remainingSeconds" to intent.getIntExtra("remaining_seconds", 0),
-      "rewardMinutes" to intent.getIntExtra("reward_minutes", 10)
+      "rewardMinutes" to intent.getIntExtra("reward_minutes", 2),
+      "timesUp" to intent.getBooleanExtra("times_up", false)
     )
   }
 
   fun consumePendingUnlockIntent(): Map<String, Any>? {
     val p = pendingUnlockIntent
     pendingUnlockIntent = null
+    Log.d(TAG, "consumePendingUnlockIntent: ${if (p != null) "pkg=${p["packageName"]}" else "null"}")
     return p
   }
 
-  private fun getInstalledApps(): List<Map<String, String>> {
+  companion object {
+    private const val TAG = "EarnYourScreen"
+  }
+
+  private fun getInstalledApps(): List<Map<String, Any>> {
     val pm = packageManager
     val intent = Intent(Intent.ACTION_MAIN).apply { addCategory(Intent.CATEGORY_LAUNCHER) }
     val resolveInfo = pm.queryIntentActivities(intent, PackageManager.MATCH_ALL)
-    return resolveInfo.map { info ->
-      mapOf(
-        "packageName" to info.activityInfo.packageName,
-        "label" to (info.loadLabel(pm)?.toString() ?: info.activityInfo.packageName)
+    val socialKeys = listOf(
+      "instagram",
+      "facebook.katana",
+      "facebook",
+      "tiktok",
+      "snapchat",
+      "reddit",
+      "youtube",
+      "whatsapp",
+      "telegram",
+      "twitter",
+      "x.com",
+      "discord",
+      "pinterest"
+    )
+
+    val filtered = resolveInfo.filter { info ->
+      val pkg = info.activityInfo.packageName.lowercase()
+      socialKeys.any { key -> pkg.contains(key) }
+    }
+
+    return filtered.map { info ->
+      val pkg = info.activityInfo.packageName
+      val label = info.loadLabel(pm)?.toString() ?: pkg
+      val iconDrawable = info.loadIcon(pm)
+      val iconBytes = drawableToPngBytes(iconDrawable)
+
+      val map = mutableMapOf<String, Any>(
+        "packageName" to pkg,
+        "label" to label,
       )
-    }.sortedBy { it["label"]?.lowercase() ?: "" }
+      if (iconBytes != null) {
+        map["icon"] = iconBytes
+      }
+      map
+    }.sortedBy { (it["label"] as? String)?.lowercase() ?: "" }
+  }
+
+  private fun drawableToPngBytes(drawable: Drawable): ByteArray? {
+    val bitmap: Bitmap = when (drawable) {
+      is BitmapDrawable -> drawable.bitmap
+      else -> {
+        val width = drawable.intrinsicWidth.takeIf { it > 0 } ?: 128
+        val height = drawable.intrinsicHeight.takeIf { it > 0 } ?: 128
+        val bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bmp)
+        drawable.setBounds(0, 0, canvas.width, canvas.height)
+        drawable.draw(canvas)
+        bmp
+      }
+    }
+    val output = ByteArrayOutputStream()
+    bitmap.compress(Bitmap.CompressFormat.PNG, 100, output)
+    return output.toByteArray()
   }
 
   private fun hasUsageStatsPermission(): Boolean {

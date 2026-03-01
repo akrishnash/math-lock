@@ -1,9 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_colors.dart';
+import '../../core/models/app_info.dart';
 import '../../core/platform/zen_platform.dart';
+import '../../core/utils/app_log.dart' as app_log;
+import '../auth/auth_state.dart';
 import '../settings/settings_state.dart';
+import 'intervention_screen.dart';
 import 'zen_state.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -13,22 +19,81 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _checkPendingUnlockIntent());
+    WidgetsBinding.instance.addObserver(this);
+    app_log.log('Home', 'initState: will check pending unlock after delay');
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (!mounted) return;
+      await _checkPendingUnlockIntent(from: 'initState');
+    });
   }
 
-  Future<void> _checkPendingUnlockIntent() async {
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    app_log.log('Home', 'lifecycle: $state');
+    if (state == AppLifecycleState.resumed) {
+      _checkPendingUnlockIntent(from: 'resumed');
+    }
+  }
+
+  Future<void> _checkPendingUnlockIntent({required String from}) async {
     if (!mounted) return;
+    app_log.log('Home', 'checkPendingUnlockIntent(from: $from)');
     final pending = await ZenPlatform.getPendingUnlockIntent();
-    if (!mounted || pending == null) return;
-    context.go('/block', extra: pending);
+    app_log.log('Home', 'getPendingUnlockIntent() => ${pending != null ? "data for ${pending["packageName"]}" : "null"}');
+    if (!mounted) return;
+    if (pending != null) {
+      final packageName = pending['packageName'] as String? ?? '';
+      final appLabel = pending['appLabel'] as String? ?? packageName;
+      final remainingSeconds = pending['remainingSeconds'] is int
+          ? pending['remainingSeconds'] as int
+          : (pending['remainingSeconds'] is num
+              ? (pending['remainingSeconds'] as num).toInt()
+              : 0);
+      final rewardMinutes = pending['rewardMinutes'] is int
+          ? pending['rewardMinutes'] as int
+          : (pending['rewardMinutes'] is num
+              ? (pending['rewardMinutes'] as num).toInt()
+              : ref.read(settingsProvider).rewardDurationMinutes);
+      final timesUp = pending['timesUp'] == true;
+
+      app_log.log('Home', 'navigating to /intervention (timesUp=$timesUp)');
+      context.go(
+        '/intervention',
+        extra: InterventionScreenArgs(
+          packageName: packageName,
+          appLabel: appLabel,
+          remainingSeconds: remainingSeconds,
+          rewardMinutes: rewardMinutes,
+          timesUp: timesUp,
+        ),
+      );
+      return;
+    }
+    // No pending unlock: if not authenticated, send to login
+    final user = ref.read(authStateProvider).valueOrNull;
+    final skipped = ref.read(authSkippedProvider);
+    if (user == null && !skipped && mounted) {
+      app_log.log('Home', 'no pending intent, not auth -> /login');
+      context.go('/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
+    app_log.log('Home', 'build: zenOn=${ref.read(zenSessionProvider).isZenOn}');
     final zen = ref.watch(zenSessionProvider);
     final settings = ref.watch(settingsProvider);
     if (zen.sessionEndMillis != null &&
@@ -40,143 +105,665 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        title: const Text('Zen Mode'),
+        backgroundColor: AppColors.background,
+        elevation: 0,
+        title: Text(
+          'EARN YOUR SCREEN',
+          style: GoogleFonts.spaceMono(
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
+            color: AppColors.offWhite,
+          ),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.settings_outlined),
+            icon: const Icon(Icons.settings_outlined, color: AppColors.offWhite),
             onPressed: () => context.push('/settings'),
           ),
           IconButton(
-            icon: const Icon(Icons.bar_chart_outlined),
+            icon: const Icon(Icons.bar_chart_outlined, color: AppColors.offWhite),
             onPressed: () => context.push('/stats'),
           ),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(24),
-        children: [
-          const SizedBox(height: 16),
-          _ZenCard(
-            isOn: zen.isZenOn,
-            sessionEndMillis: zen.sessionEndMillis,
-            blockedCount: zen.blockedPackages.length,
-            onTurnOn: () => context.push('/app-picker'),
-            onTurnOff: () async {
+      body: zen.isZenOn ? _buildZenOnContent(zen, settings) : _buildZenOffContent(zen, settings),
+    );
+  }
+
+  Widget _buildZenOnContent(ZenSessionState zen, SettingsState settings) {
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        _ZenOnCard(
+          sessionEndMillis: zen.sessionEndMillis!,
+          blockedCount: zen.blockedPackages.length,
+          onTurnOff: () async {
+            app_log.log('Home', 'Turn off Zen tapped');
+            try {
               await ZenPlatform.stopZenMonitoring();
-              ref.read(zenSessionProvider.notifier).stopZen();
-            },
+              await ref.read(zenSessionProvider.notifier).stopZen();
+              app_log.log('Home', 'Zen turned off OK');
+              if (mounted) setState(() {});
+            } catch (e, st) {
+              app_log.logError('Home', 'Turn off Zen failed', e, st);
+            }
+          },
+        ),
+        const SizedBox(height: 24),
+        _BlockedAppsList(packageNames: zen.blockedPackages),
+      ],
+    );
+  }
+
+  bool _canStartLockdown(ZenSessionState zen, SettingsState settings, int hours, int minutes) {
+    final hasDuration = hours > 0 || minutes > 0;
+    final fullLock = settings.lockMode == LockMode.full;
+    final hasApps = zen.blockedPackages.isNotEmpty;
+    return hasDuration && (fullLock || hasApps);
+  }
+
+  Widget _buildZenOffContent(ZenSessionState zen, SettingsState settings) {
+    final totalMinutes = settings.sessionDurationMinutes;
+    final hours = totalMinutes ~/ 60;
+    final minutes = totalMinutes % 60;
+
+    return ListView(
+      padding: const EdgeInsets.all(24),
+      children: [
+        const SizedBox(height: 16),
+        Text(
+          'LOCK DURATION',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.offWhite,
+            letterSpacing: 2,
           ),
-          const SizedBox(height: 24),
-          if (zen.isZenOn && zen.blockedPackages.isNotEmpty) ...[
-            Text(
-              'Blocked apps (${zen.blockedPackages.length})',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+        ),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _DurationColumn(
+              value: hours,
+              label: 'HOURS',
+              min: 0,
+              max: 23,
+              step: 1,
+              onChanged: (v) {
+                final m = (v * 60) + (totalMinutes % 60);
+                ref.read(settingsProvider.notifier).setSessionDurationMinutes(m.clamp(0, 24 * 60 - 1));
+              },
             ),
-            const SizedBox(height: 8),
-            ...zen.blockedPackages.map((p) => ListTile(
-                  leading: const Icon(Icons.block),
-                  title: Text(p),
-                  dense: true,
-                )),
-            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 48),
+              child: Text(
+                ':',
+                style: GoogleFonts.spaceMono(
+                  fontSize: 72,
+                  color: AppColors.neonPink,
+                ),
+              ),
+            ),
+            _DurationColumn(
+              value: minutes,
+              label: 'MINUTES',
+              min: 0,
+              max: 59,
+              step: 5,
+              onChanged: (v) {
+                final m = (totalMinutes ~/ 60) * 60 + v;
+                ref.read(settingsProvider.notifier).setSessionDurationMinutes(m);
+              },
+            ),
           ],
-          _PermissionCard(settings: settings),
-        ],
+        ),
+        const SizedBox(height: 32),
+        Text(
+          'LOCK MODE',
+          style: GoogleFonts.inter(
+            fontSize: 14,
+            color: AppColors.offWhite,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            _LockModeChip(
+              label: 'Block selected apps',
+              selected: settings.lockMode == LockMode.apps,
+              onTap: () => ref.read(settingsProvider.notifier).setLockMode(LockMode.apps),
+            ),
+            const SizedBox(width: 12),
+            _LockModeChip(
+              label: 'Lock entire phone',
+              selected: settings.lockMode == LockMode.full,
+              onTap: () => ref.read(settingsProvider.notifier).setLockMode(LockMode.full),
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Text(
+          'THE ENEMY (Apps to Block)',
+          style: GoogleFonts.spaceMono(
+            fontSize: 14,
+            color: AppColors.offWhite,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GestureDetector(
+          onTap: () => context.push('/app-picker'),
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: Border.all(color: AppColors.offWhite, width: 4),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  zen.blockedPackages.isEmpty
+                      ? 'Select apps to block'
+                      : '${zen.blockedPackages.length} app(s) selected',
+                  style: GoogleFonts.inter(color: AppColors.offWhite),
+                ),
+                const Icon(Icons.chevron_right, color: AppColors.offWhite),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton(
+            onPressed: _canStartLockdown(zen, settings, hours, minutes) ? () async {
+                    final sessionMinutes = (hours * 60) + minutes;
+                    if (sessionMinutes <= 0) return;
+                    final allowed = await _ensurePermissions(context, settings);
+                    if (!allowed || !mounted) return;
+                    await ref.read(settingsProvider.notifier).setSessionDurationMinutes(sessionMinutes);
+                    await ref.read(zenSessionProvider.notifier).startZen(
+                          sessionDurationMinutes: sessionMinutes,
+                          blockedPackageNames: zen.blockedPackages,
+                        );
+                    final sessionEnd = ref.read(zenSessionProvider).sessionEndMillis;
+                    if (sessionEnd != null) {
+                      await ZenPlatform.startZenMonitoring(
+                        blockedPackageNames: zen.blockedPackages,
+                        sessionEndMillis: sessionEnd,
+                        allowReopenWithinWindow: settings.allowReopenWithinWindow,
+                        fullLock: settings.lockMode == LockMode.full,
+                      );
+                    }
+                    if (mounted) setState(() {});
+                  } : null,
+            style: FilledButton.styleFrom(
+              backgroundColor: !_canStartLockdown(zen, settings, hours, minutes)
+                  ? AppColors.muted
+                  : AppColors.neonPink,
+              foregroundColor: AppColors.offWhite,
+              padding: const EdgeInsets.symmetric(vertical: 24),
+              side: BorderSide(
+                color: !_canStartLockdown(zen, settings, hours, minutes)
+                    ? AppColors.disabled
+                    : AppColors.offWhite,
+                width: 4,
+              ),
+            ),
+            child: Text(
+              'INITIATE LOCKDOWN',
+              style: GoogleFonts.spaceMono(fontSize: 16),
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        _SelectedAppsPreview(packageNames: zen.blockedPackages),
+      ],
+    );
+  }
+
+  /// Checks required permissions before starting lockdown. Shows a prompt and opens
+  /// settings if any are missing. Returns true only when all required permissions are granted.
+  Future<bool> _ensurePermissions(BuildContext context, SettingsState settings) async {
+    final usage = await ZenPlatform.hasUsageStatsPermission();
+    if (!usage) {
+      final open = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            'Usage access required',
+            style: GoogleFonts.inter(color: AppColors.offWhite),
+          ),
+          content: Text(
+            'Earn Your Screen needs usage access to detect when you open blocked apps.',
+            style: GoogleFonts.inter(color: AppColors.offWhite),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
+              child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
+            ),
+          ],
+        ),
+      );
+      if (open == true) await ZenPlatform.openUsageAccessSettings();
+      return false;
+    }
+    final overlay = await ZenPlatform.hasOverlayPermission();
+    if (!overlay) {
+      final open = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.surface,
+          title: Text(
+            'Display over other apps',
+            style: GoogleFonts.inter(color: AppColors.offWhite),
+          ),
+          content: Text(
+            'Earn Your Screen needs to show the focus screen when you open a blocked app.',
+            style: GoogleFonts.inter(color: AppColors.offWhite),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
+              child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
+            ),
+          ],
+        ),
+      );
+      if (open == true) await ZenPlatform.openOverlaySettings();
+      return false;
+    }
+    if (settings.lockMode == LockMode.apps) {
+      final notification = await ZenPlatform.hasNotificationListenerPermission();
+      if (!notification) {
+        final open = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text(
+              'Notification access',
+              style: GoogleFonts.inter(color: AppColors.offWhite),
+            ),
+            content: Text(
+              'Earn Your Screen can hide notifications from blocked apps during focus mode.',
+              style: GoogleFonts.inter(color: AppColors.offWhite),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
+                child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
+              ),
+            ],
+          ),
+        );
+        if (open == true) await ZenPlatform.openNotificationListenerSettings();
+        return false;
+      }
+    }
+    return true;
+  }
+}
+
+class _BlockedAppsList extends StatelessWidget {
+  const _BlockedAppsList({required this.packageNames});
+
+  final List<String> packageNames;
+
+  @override
+  Widget build(BuildContext context) {
+    if (packageNames.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 24),
+        Text(
+          'Blocked apps (${packageNames.length})',
+          style: GoogleFonts.spaceMono(
+            fontSize: 14,
+            color: AppColors.mutedForeground,
+          ),
+        ),
+        const SizedBox(height: 8),
+        FutureBuilder<List<AppInfo>>(
+          future: ZenPlatform.getInstalledApps(),
+          builder: (context, snapshot) {
+            if (!snapshot.hasData) {
+              return const Padding(
+                padding: EdgeInsets.all(16),
+                child: Center(child: CircularProgressIndicator(color: AppColors.neonPink)),
+              );
+            }
+            final apps = snapshot.data!;
+            final byPackage = {for (final a in apps) a.packageName: a};
+            return Column(
+              children: packageNames.map((pkg) {
+                final app = byPackage[pkg];
+                final label = app?.label ?? pkg;
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.offWhite, width: 4),
+                  ),
+                  child: Row(
+                    children: [
+                      if (app?.iconBytes != null)
+                        Image.memory(
+                          app!.iconBytes!,
+                          width: 40,
+                          height: 40,
+                          fit: BoxFit.contain,
+                        )
+                      else
+                        const Icon(Icons.apps, color: AppColors.offWhite, size: 40),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          label,
+                          style: GoogleFonts.inter(color: AppColors.offWhite),
+                        ),
+                      ),
+                      const Icon(Icons.block, color: AppColors.neonPink, size: 24),
+                    ],
+                  ),
+                );
+              }).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _SelectedAppsPreview extends StatelessWidget {
+  const _SelectedAppsPreview({required this.packageNames});
+
+  final List<String> packageNames;
+
+  @override
+  Widget build(BuildContext context) {
+    if (packageNames.isEmpty) return const SizedBox.shrink();
+    return FutureBuilder<List<AppInfo>>(
+      future: ZenPlatform.getInstalledApps(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final apps = snapshot.data!;
+        final byPackage = {for (final a in apps) a.packageName: a};
+        final selectedApps = packageNames
+            .map((p) => byPackage[p])
+            .whereType<AppInfo>()
+            .toList();
+        if (selectedApps.isEmpty) return const SizedBox.shrink();
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: selectedApps.map((app) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    border: Border.all(color: AppColors.offWhite, width: 2),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (app.iconBytes != null)
+                        Image.memory(
+                          app.iconBytes!,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.contain,
+                        )
+                      else
+                        const Icon(Icons.apps, color: AppColors.offWhite, size: 24),
+                      const SizedBox(width: 8),
+                      Text(
+                        app.label,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: AppColors.offWhite,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _LockModeChip extends StatelessWidget {
+  const _LockModeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Material(
+        color: selected ? AppColors.neonPink : AppColors.surface,
+        child: InkWell(
+          onTap: onTap,
+          child: Container(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: selected ? AppColors.neonPink : AppColors.offWhite,
+                width: 2,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.offWhite,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _ZenCard extends StatelessWidget {
-  const _ZenCard({
-    required this.isOn,
+class _DurationColumn extends StatelessWidget {
+  const _DurationColumn({
+    required this.value,
+    required this.label,
+    required this.min,
+    required this.max,
+    required this.step,
+    required this.onChanged,
+  });
+
+  final int value;
+  final String label;
+  final int min;
+  final int max;
+  final int step;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _DurationButton(
+          icon: Icons.keyboard_arrow_up,
+          onPressed: value < max ? () => onChanged((value + step).clamp(min, max)) : null,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          value.toString().padLeft(2, '0'),
+          style: GoogleFonts.spaceMono(
+            fontSize: 72,
+            color: AppColors.offWhite,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _DurationButton(
+          icon: Icons.keyboard_arrow_down,
+          onPressed: value > min ? () => onChanged((value - step).clamp(min, max)) : null,
+        ),
+        const SizedBox(height: 8),
+        Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            color: AppColors.offWhite,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DurationButton extends StatelessWidget {
+  const _DurationButton({required this.icon, this.onPressed});
+
+  final IconData icon;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        child: Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: onPressed != null ? AppColors.offWhite : AppColors.disabled,
+              width: 4,
+            ),
+          ),
+          child: Icon(
+            icon,
+            color: AppColors.offWhite,
+            size: 32,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ZenOnCard extends StatelessWidget {
+  const _ZenOnCard({
     required this.sessionEndMillis,
     required this.blockedCount,
-    required this.onTurnOn,
     required this.onTurnOff,
   });
 
-  final bool isOn;
-  final int? sessionEndMillis;
+  final int sessionEndMillis;
   final int blockedCount;
-  final VoidCallback onTurnOn;
   final VoidCallback onTurnOff;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isOn
-                        ? theme.colorScheme.primaryContainer
-                        : theme.colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    isOn ? Icons.self_improvement : Icons.self_improvement_outlined,
-                    color: isOn
-                        ? theme.colorScheme.onPrimaryContainer
-                        : theme.colorScheme.onSurfaceVariant,
-                    size: 32,
-                  ),
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.offWhite, width: 4),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.neonPink.withValues(alpha: 0.3),
+                  border: Border.all(color: AppColors.offWhite, width: 2),
                 ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        isOn ? 'Zen mode is on' : 'Zen mode',
-                        style: theme.textTheme.titleLarge,
-                      ),
-                      const SizedBox(height: 4),
-                      if (isOn && sessionEndMillis != null)
-                        Text(
-                          'Until ${_formatTime(sessionEndMillis!)}',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        )
-                      else if (!isOn)
-                        Text(
-                          'Block distractions and focus',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: isOn ? onTurnOff : onTurnOn,
-              style: FilledButton.styleFrom(
-                minimumSize: const Size(double.infinity, 52),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
+                child: const Icon(
+                  Icons.self_improvement,
+                  color: AppColors.neonPink,
+                  size: 32,
                 ),
               ),
-              child: Text(isOn ? 'Turn off Zen mode' : 'Turn on Zen mode'),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Focus mode is on',
+                      style: GoogleFonts.spaceMono(
+                        fontSize: 20,
+                        color: AppColors.offWhite,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Until ${_formatTime(sessionEndMillis)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: AppColors.mutedForeground,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: onTurnOff,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.neonPink,
+                foregroundColor: AppColors.offWhite,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                side: const BorderSide(color: AppColors.offWhite, width: 4),
+              ),
+              child: const Text('Turn off focus mode'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -185,62 +772,6 @@ class _ZenCard extends StatelessWidget {
     final d = DateTime.fromMillisecondsSinceEpoch(millis);
     final h = d.hour;
     final m = d.minute;
-    return '${h > 12 ? h - 12 : h}:${m.toString().padLeft(2, '0')} ${h >= 12 ? 'PM' : 'AM'}';
-  }
-}
-
-class _PermissionCard extends StatelessWidget {
-  const _PermissionCard({required this.settings});
-
-  final SettingsState settings;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Permissions',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-            const SizedBox(height: 12),
-            _PermissionRow(
-              label: 'Usage access',
-              onTap: () => ZenPlatform.openUsageAccessSettings(),
-            ),
-            _PermissionRow(
-              label: 'Display over other apps',
-              onTap: () => ZenPlatform.openOverlaySettings(),
-            ),
-            _PermissionRow(
-              label: 'Notification access',
-              onTap: () => ZenPlatform.openNotificationListenerSettings(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _PermissionRow extends StatelessWidget {
-  const _PermissionRow({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListTile(
-      contentPadding: EdgeInsets.zero,
-      title: Text(label),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: onTap,
-    );
+    return '${h > 12 ? h - 12 : (h == 0 ? 12 : h)}:${m.toString().padLeft(2, '0')} ${h >= 12 ? 'PM' : 'AM'}';
   }
 }

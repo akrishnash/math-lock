@@ -1,5 +1,5 @@
 <resources>
-  <string name="app_name">Zen Mode</string>
+  <string name="app_name">Earn Your Screen</string>
   <string name="overlay_app_locked">%1$s is locked</string>
   <string name="overlay_time_left_fmt">Time left: %1$d:%2$02d</string>
 </resources>

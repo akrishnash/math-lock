@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "908300702285",
+    "project_id": "earnyourscreen",
+    "storage_bucket": "earnyourscreen.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:908300702285:android:dd3f3aec5ca4c52565c204",
+        "android_client_info": {
+          "package_name": "com.earnyourscreen.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "908300702285-ppg97e7u95l8mkec2l00pdta21pcsj6l.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.earnyourscreen.app",
+            "certificate_hash": "d24d76f81e871c97e349c93991d277da673e9ef4"
+          }
+        },
+        {
+          "client_id": "908300702285-27olq4ng7nuarpjg42mni5t2hsleemod.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAvP00NnjULMoNqldxPD1OJiJOl8vgbL90"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "908300702285-27olq4ng7nuarpjg42mni5t2hsleemod.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

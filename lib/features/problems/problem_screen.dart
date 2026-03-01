@@ -1,12 +1,21 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../../core/theme/app_colors.dart';
 import '../../core/platform/zen_platform.dart';
+import '../../core/utils/app_log.dart' as app_log;
 import '../settings/settings_state.dart';
 import '../stats/stats_state.dart';
+import 'models/challenge_question.dart';
+import 'providers/question_providers.dart';
+import 'topic_registry.dart';
+
+const String _fullLockPackage = '_full';
 
 class ProblemScreenArgs {
   const ProblemScreenArgs({
@@ -31,11 +40,11 @@ class ProblemScreen extends ConsumerStatefulWidget {
 
 class _ProblemScreenState extends ConsumerState<ProblemScreen> {
   late ProblemScreenArgs _args;
-  String _problemText = '';
-  double _expectedAnswer = 0;
-  final _answerController = TextEditingController();
+  ChallengeQuestion? _question;
+  String _input = '';
+  String? _selectedOption;
   bool _checking = false;
-  String? _error;
+  bool _showError = false;
 
   @override
   void initState() {
@@ -43,195 +52,342 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
     _args = widget.args ?? const ProblemScreenArgs(
       packageName: '',
       appLabel: 'App',
-      rewardMinutes: 10,
+      rewardMinutes: 2,
     );
+    app_log.log('Challenge', 'initState: appLabel=${_args.appLabel} rewardMinutes=${_args.rewardMinutes}');
     _generate();
   }
 
   void _generate() {
     final settings = ref.read(settingsProvider);
-    if (settings.problemType == ProblemType.linear) {
-      _generateLinear(settings.problemDifficulty);
-    } else {
-      _generateIntegration(settings.problemDifficulty);
-    }
-  }
-
-  void _generateLinear(ProblemDifficulty difficulty) {
+    final topicId = TopicRegistry.topicIds.contains(settings.questionTopic)
+        ? settings.questionTopic
+        : 'mixed';
     final r = Random();
-    int a, b, c;
-    if (difficulty == ProblemDifficulty.easy) {
-      a = r.nextInt(5) + 1;
-      b = r.nextInt(10) - 5;
-      c = r.nextInt(30) - 10;
-    } else {
-      a = r.nextInt(8) + 2;
-      b = r.nextInt(20) - 10;
-      c = r.nextInt(80) - 40;
-    }
-    // ax + b = c  =>  x = (c - b) / a
-    final x = (c - b) / a;
-    if (x != x.roundToDouble()) {
-      _generateLinear(difficulty);
-      return;
-    }
-    final bStr = b >= 0 ? '+ $b' : '- ${-b}';
-    _problemText = '${a}x $bStr = $c';
-    _expectedAnswer = (c - b) / a;
+    final q = generateQuestion(
+      topicId: topicId,
+      difficulty: settings.problemDifficulty,
+      random: r,
+    );
     setState(() {
-      _error = null;
-      _answerController.clear();
+      _question = q;
+      _showError = false;
+      _input = '';
+      _selectedOption = null;
     });
   }
 
-  void _generateIntegration(ProblemDifficulty difficulty) {
-    final r = Random();
-    // ∫ k*x^n dx from 0 to upper = k * upper^(n+1) / (n+1)
-    int k, n, upper;
-    if (difficulty == ProblemDifficulty.easy) {
-      k = r.nextInt(3) + 1;
-      n = 1;
-      upper = r.nextInt(4) + 1;
-    } else {
-      k = r.nextInt(4) + 1;
-      n = r.nextInt(2) + 1;
-      upper = r.nextInt(5) + 1;
+  void _onKeyPress(String key) {
+    if (key == 'DEL') {
+      setState(() {
+        if (_input.isNotEmpty) _input = _input.substring(0, _input.length - 1);
+      });
+    } else if (key == '-' && _input.isEmpty) {
+      setState(() => _input = '-');
+    } else if (key != '-') {
+      setState(() => _input += key);
     }
-    final answer = k * (pow(upper, n + 1) / (n + 1)).toDouble();
-    _problemText = '∫ $k*x^$n dx from 0 to $upper';
-    _expectedAnswer = answer;
-    setState(() {
-      _error = null;
-      _answerController.clear();
-    });
+  }
+
+  int get _penaltyMinutes => ref.read(settingsProvider).penaltyMinutes;
+
+  Future<void> _showSuccessAndGoHome() async {
+    final mins = _args.rewardMinutes;
+    final packageName = _args.packageName;
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          'Great!',
+          style: GoogleFonts.spaceMono(color: AppColors.offWhite),
+        ),
+        content: Text(
+          '$mins minutes grace for you. Enjoy yourself.',
+          style: GoogleFonts.inter(color: AppColors.offWhite),
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Enjoy'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+    if (packageName.isNotEmpty && packageName != _fullLockPackage) {
+      await ZenPlatform.launchApp(packageName);
+    }
+    if (!mounted) return;
+    context.go('/');
+  }
+
+  bool get _hasAnswer {
+    final q = _question;
+    if (q == null) return false;
+    if (q.inputKind == ChallengeInputKind.multipleChoice) {
+      return _selectedOption != null;
+    }
+    return _input.isNotEmpty;
   }
 
   Future<void> _submit() async {
-    final raw = _answerController.text.trim();
-    final value = double.tryParse(raw);
-    if (value == null) {
-      setState(() => _error = 'Enter a number');
-      return;
-    }
+    final q = _question;
+    if (q == null) return;
+
     setState(() {
       _checking = true;
-      _error = null;
+      _showError = false;
     });
-    const tolerance = 0.01;
-    final correct = (value - _expectedAnswer).abs() < tolerance;
-    if (correct) {
-      await ZenPlatform.allowPackageForMinutes(
-        packageName: _args.packageName,
-        minutes: _args.rewardMinutes,
-      );
-      ref.read(statsProvider.notifier).recordUnlockViaProblem();
-      if (mounted) {
-        context.go('/');
-      }
+
+    bool correct;
+    if (q.inputKind == ChallengeInputKind.multipleChoice) {
+      correct = _selectedOption == q.correctAnswer;
     } else {
-      setState(() {
-        _checking = false;
-        _error = 'Incorrect. Try again.';
-        _generate();
-      });
+      final value = double.tryParse(_input);
+      if (value == null) {
+        setState(() => _checking = false);
+        return;
+      }
+      final expected = double.tryParse(q.correctAnswer);
+      correct = expected != null && (value - expected).abs() < 0.01;
     }
+
+    if (correct) {
+      if (ref.read(settingsProvider).enableVibration) {
+        HapticFeedback.heavyImpact();
+      }
+      if (_args.packageName == _fullLockPackage) {
+        await ZenPlatform.allowFullUnlockForMinutes(_args.rewardMinutes);
+      } else {
+        await ZenPlatform.allowPackageForMinutes(
+          packageName: _args.packageName,
+          minutes: _args.rewardMinutes,
+        );
+      }
+      ref.read(statsProvider.notifier).recordUnlockViaProblem();
+      if (!mounted) return;
+      await _showSuccessAndGoHome();
+      return;
+    }
+
+    if (ref.read(settingsProvider).enableVibration) {
+      HapticFeedback.vibrate();
+    }
+    setState(() {
+      _checking = false;
+      _showError = true;
+    });
+    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    if (!mounted) return;
+    setState(() => _showError = false);
+    _generate();
   }
 
-  @override
-  void dispose() {
-    _answerController.dispose();
-    super.dispose();
-  }
+  Color get _accentColor => ref.watch(settingsProvider).accentColor;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    if (_question == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _generate();
+      });
+    }
+
+    final q = _question;
+    final isMultipleChoice = q?.inputKind == ChallengeInputKind.multipleChoice;
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Solve to unlock'),
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
+      backgroundColor: _showError ? AppColors.destructive : AppColors.background,
+      body: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        color: _showError ? AppColors.destructive : AppColors.background,
+        child: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                'Unlock ${_args.appLabel} for ${_args.rewardMinutes} minutes',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.offWhite, width: 4),
+                    ),
+                  ),
+                  child: Text(
+                    'PROVE YOU NEED IT.',
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.offWhite,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
                 ),
               ),
-              const SizedBox(height: 32),
-              Card(
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'Problem',
-                        style: theme.textTheme.titleSmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
+                      if (_showError) ...[
+                        Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: AppColors.background,
+                            border: Border.all(color: AppColors.offWhite, width: 4),
+                          ),
+                          child: Text(
+                            'ACCESS DENIED. +$_penaltyMinutes MINS ADDED TO TIMER.',
+                            style: GoogleFonts.spaceMono(
+                              fontSize: 14,
+                              color: AppColors.offWhite,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        _problemText,
-                        style: theme.textTheme.headlineMedium?.copyWith(
-                          fontFamily: 'monospace',
+                      ],
+                      Container(
+                        padding: const EdgeInsets.all(32),
+                        decoration: BoxDecoration(
+                          color: AppColors.surface,
+                          border: Border.all(color: AppColors.offWhite, width: 4),
+                        ),
+                        child: Text(
+                          q?.prompt ?? '',
+                          style: GoogleFonts.spaceMono(
+                            fontSize: 24,
+                            color: AppColors.offWhite,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
                       ),
                       const SizedBox(height: 24),
-                      TextField(
-                        controller: _answerController,
-                        keyboardType: const TextInputType.numberWithOptions(
-                          decimal: true,
-                          signed: true,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Answer (number)',
-                          errorText: _error,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      if (isMultipleChoice) ...[
+                        ...?q?.options.map((opt) {
+                          final selected = _selectedOption == opt;
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: Material(
+                                color: selected ? _accentColor.withValues(alpha: 0.2) : AppColors.surface,
+                                child: InkWell(
+                                  onTap: _checking ? null : () => setState(() => _selectedOption = opt),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 20),
+                                    decoration: BoxDecoration(
+                                      border: Border.all(
+                                        color: selected ? _accentColor : AppColors.offWhite,
+                                        width: 4,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        opt,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 18,
+                                          color: AppColors.offWhite,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ] else ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+                          decoration: BoxDecoration(
+                            color: AppColors.surface,
+                            border: Border.all(color: AppColors.offWhite, width: 4),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                _input,
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 48,
+                                  color: _accentColor,
+                                ),
+                              ),
+                              Text(
+                                '_',
+                                style: GoogleFonts.spaceMono(
+                                  fontSize: 48,
+                                  color: _accentColor,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        onSubmitted: (_) => _submit(),
+                        const SizedBox(height: 24),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 3,
+                          mainAxisSpacing: 12,
+                          crossAxisSpacing: 12,
+                          childAspectRatio: 1.8,
+                          children: [
+                            '7', '8', '9',
+                            '4', '5', '6',
+                            '1', '2', '3',
+                            '-', '0', 'DEL',
+                          ].map((key) {
+                            final isDel = key == 'DEL';
+                            return Material(
+                              color: AppColors.surface,
+                              child: InkWell(
+                                onTap: _checking ? null : () => _onKeyPress(key),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: AppColors.offWhite, width: 4),
+                                    color: isDel ? AppColors.surface : null,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      key,
+                                      style: GoogleFonts.spaceMono(
+                                        fontSize: 24,
+                                        color: isDel ? AppColors.destructive : AppColors.offWhite,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton(
+                          onPressed: (_checking || !_hasAnswer) ? null : _submit,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: !_hasAnswer ? AppColors.muted : _accentColor,
+                            foregroundColor: !_hasAnswer ? AppColors.disabled : AppColors.background,
+                            padding: const EdgeInsets.symmetric(vertical: 24),
+                            side: BorderSide(
+                              color: !_hasAnswer ? AppColors.disabled : AppColors.offWhite,
+                              width: 4,
+                            ),
+                          ),
+                          child: Text(
+                            'SUBMIT ANSWER',
+                            style: GoogleFonts.spaceMono(fontSize: 16),
+                          ),
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _checking ? null : _submit,
-                style: FilledButton.styleFrom(
-                  minimumSize: const Size(double.infinity, 56),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: _checking
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Submit'),
-              ),
-              const SizedBox(height: 16),
-              TextButton(
-                onPressed: _checking ? null : () => _generate(),
-                child: const Text('New problem'),
               ),
             ],
           ),

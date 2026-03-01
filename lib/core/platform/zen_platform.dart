@@ -8,9 +8,9 @@ import '../models/app_info.dart';
 class ZenPlatform {
   ZenPlatform._();
 
-  static const MethodChannel _channel = MethodChannel('com.mathlock.math_lock/zen');
+  static const MethodChannel _channel = MethodChannel('com.earnyourscreen.app/zen');
   static const EventChannel _blockedAppChannel =
-      EventChannel('com.mathlock.math_lock/blocked_app');
+      EventChannel('com.earnyourscreen.app/blocked_app');
 
   /// Get list of installed launchable apps (package name + label).
   static Future<List<AppInfo>> getInstalledApps() async {
@@ -53,14 +53,18 @@ class ZenPlatform {
         false;
   }
 
-  /// Start zen monitoring with [blockedPackageNames] and [sessionEndMillis] (epoch ms).
+  /// Start zen monitoring. If [fullLock] is true, locks entire phone (except calls).
   static Future<void> startZenMonitoring({
     required List<String> blockedPackageNames,
     required int sessionEndMillis,
+    required bool allowReopenWithinWindow,
+    bool fullLock = false,
   }) async {
     await _channel.invokeMethod('startZenMonitoring', {
       'blockedPackageNames': blockedPackageNames,
       'sessionEndMillis': sessionEndMillis,
+      'allowReopenWithinWindow': allowReopenWithinWindow,
+      'fullLock': fullLock,
     });
   }
 
@@ -80,6 +84,11 @@ class ZenPlatform {
     });
   }
 
+  /// Allow full phone unlock for [minutes] (used when lock mode is "full").
+  static Future<void> allowFullUnlockForMinutes(int minutes) async {
+    await _channel.invokeMethod('allowFullUnlockForMinutes', {'minutes': minutes});
+  }
+
   /// Stream: when user opens a blocked app, emits map with 'packageName', 'remainingSeconds' (optional).
   static Stream<Map<dynamic, dynamic>> get blockedAppOpenedStream =>
       _blockedAppChannel.receiveBroadcastStream().map((e) => e as Map<dynamic, dynamic>);
@@ -89,5 +98,11 @@ class ZenPlatform {
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('getPendingUnlockIntent');
     if (raw == null) return null;
     return Map<String, dynamic>.from(raw);
+  }
+
+  /// Launch the app with [packageName] (e.g. after granting grace).
+  static Future<void> launchApp(String packageName) async {
+    if (packageName.isEmpty) return;
+    await _channel.invokeMethod('launchApp', {'packageName': packageName});
   }
 }

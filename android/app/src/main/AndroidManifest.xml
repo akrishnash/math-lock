@@ -1,4 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" />
@@ -13,7 +14,7 @@
   </queries>
 
   <application
-    android:label="Zen Mode"
+    android:label="Earn Your Screen"
     android:name="${applicationName}"
     android:icon="@mipmap/ic_launcher"
     android:allowBackup="true"

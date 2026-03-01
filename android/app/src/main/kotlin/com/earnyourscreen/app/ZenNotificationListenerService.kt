@@ -1,4 +1,4 @@
-package com.mathlock.math_lock
+package com.earnyourscreen.app
 
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification

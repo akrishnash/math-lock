@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:gravity="center"
+  android:padding="24dp"
+  android:background="#F00A0A0F">
+  <TextView
+    android:id="@+id/overlay_full_title"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:textSize="24sp"
+    android:textStyle="bold"
+    android:gravity="center"
+    android:textColor="#FFF0F0F0"
+    android:text="Phone locked" />
+  <TextView
+    android:id="@+id/overlay_full_subtitle"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="12dp"
+    android:textSize="14sp"
+    android:gravity="center"
+    android:textColor="#FF888888"
+    android:text="Calls allowed. Solve problem to unlock." />
+  <Button
+    android:id="@+id/overlay_full_btn_solve"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="32dp"
+    android:text="Solve problem to unlock" />
+</LinearLayout>

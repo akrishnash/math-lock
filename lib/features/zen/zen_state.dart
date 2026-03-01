@@ -68,7 +68,7 @@ class ZenSessionNotifier extends StateNotifier<ZenSessionState> {
   Future<void> stopZen() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(StorageKeys.zenSessionEndMillis);
-    state = state.copyWith(sessionEndMillis: null);
+    state = ZenSessionState(sessionEndMillis: null, blockedPackages: state.blockedPackages);
   }
 }
 
