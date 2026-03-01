@@ -49,3 +49,7 @@ node_modules/
 .expo/
 dist/
 .metadata
+# Android signing (never commit real keys)
+/android/key.properties
+/android/*.jks
+/android/*.keystore
