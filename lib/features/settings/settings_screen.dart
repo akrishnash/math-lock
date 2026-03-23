@@ -147,6 +147,7 @@ class SettingsScreen extends ConsumerWidget {
               onPressed: () async {
                 await ref.read(authSkippedProvider.notifier).setSkipped(false);
                 await AuthService.signOut();
+                if (context.mounted) context.go('/login');
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.mutedForeground,
@@ -400,10 +401,13 @@ class SettingsScreen extends ConsumerWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: GoogleFonts.inter(color: AppColors.offWhite),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(color: AppColors.offWhite),
+            ),
           ),
+          const SizedBox(width: 12),
           GestureDetector(
             onTap: () => onChanged(!value),
             child: Container(

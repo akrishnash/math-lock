@@ -11,7 +11,7 @@ class MathLockApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
-      title: 'PriorityFlow',
+      title: 'Earn Your Screen',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,

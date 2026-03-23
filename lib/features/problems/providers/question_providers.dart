@@ -4,6 +4,12 @@ import '../../../core/data/geography_capitals.dart';
 import '../models/challenge_question.dart';
 import '../../settings/settings_state.dart';
 
+/// Converts a non-negative integer to Unicode superscript characters.
+String _toSuperscript(int n) {
+  const sup = ['⁰', '¹', '²', '³', '⁴', '⁵', '⁶', '⁷', '⁸', '⁹'];
+  return n.toString().split('').map((d) => sup[int.parse(d)]).join();
+}
+
 /// Generates a challenge question for the given topic.
 ChallengeQuestion generateQuestion({
   required String topicId,
@@ -86,7 +92,9 @@ ChallengeQuestion _generateIntegrationQuestion(ProblemDifficulty difficulty, Ran
     upper = r.nextInt(5) + 1;
   }
   final answer = k * (pow(upper, n + 1) / (n + 1));
-  final prompt = '∫ $k*x^$n dx from 0 to $upper';
+  final kStr = k == 1 ? '' : '$k';
+  final nStr = n == 1 ? '' : _toSuperscript(n);
+  final prompt = '∫ ${kStr}x$nStr dx\n[0, $upper]';
   final answerStr = answer == answer.roundToDouble() ? '${answer.round()}' : answer.toString();
   return ChallengeQuestion(
     prompt: prompt,

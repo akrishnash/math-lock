@@ -325,103 +325,152 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  /// Checks required permissions before starting lockdown. Shows a prompt and opens
-  /// settings if any are missing. Returns true only when all required permissions are granted.
+  /// Checks all required permissions at once. Shows a single dialog listing every
+  /// missing permission, then opens the first one's settings page.
   Future<bool> _ensurePermissions(BuildContext context, SettingsState settings) async {
     final usage = await ZenPlatform.hasUsageStatsPermission();
-    if (!usage) {
-      final open = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            'Usage access required',
-            style: GoogleFonts.inter(color: AppColors.offWhite),
-          ),
-          content: Text(
-            'Earn Your Screen needs usage access to detect when you open blocked apps.',
-            style: GoogleFonts.inter(color: AppColors.offWhite),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
-              child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
-            ),
-          ],
-        ),
-      );
-      if (open == true) await ZenPlatform.openUsageAccessSettings();
-      return false;
-    }
     final overlay = await ZenPlatform.hasOverlayPermission();
-    if (!overlay) {
-      final open = await showDialog<bool>(
-        context: context,
-        builder: (ctx) => AlertDialog(
-          backgroundColor: AppColors.surface,
-          title: Text(
-            'Display over other apps',
-            style: GoogleFonts.inter(color: AppColors.offWhite),
-          ),
-          content: Text(
-            'Earn Your Screen needs to show the focus screen when you open a blocked app.',
-            style: GoogleFonts.inter(color: AppColors.offWhite),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(ctx).pop(false),
-              child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(ctx).pop(true),
-              style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
-              child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
-            ),
-          ],
-        ),
-      );
-      if (open == true) await ZenPlatform.openOverlaySettings();
-      return false;
+    final needsNotif = settings.lockMode == LockMode.apps;
+    final notification = needsNotif ? await ZenPlatform.hasNotificationListenerPermission() : true;
+
+    if (usage && overlay && notification) return true;
+
+    final missing = <_PermItem>[];
+    if (!usage) {
+      missing.add(_PermItem(
+        icon: Icons.query_stats_outlined,
+        title: 'Usage Access',
+        description: 'Detects when you open a blocked app.',
+        onGrant: ZenPlatform.openUsageAccessSettings,
+      ));
     }
-    if (settings.lockMode == LockMode.apps) {
-      final notification = await ZenPlatform.hasNotificationListenerPermission();
-      if (!notification) {
-        final open = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: Text(
-              'Notification access',
-              style: GoogleFonts.inter(color: AppColors.offWhite),
-            ),
-            content: Text(
-              'Earn Your Screen can hide notifications from blocked apps during focus mode.',
-              style: GoogleFonts.inter(color: AppColors.offWhite),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(ctx).pop(false),
-                child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
-              ),
-              FilledButton(
-                onPressed: () => Navigator.of(ctx).pop(true),
-                style: FilledButton.styleFrom(backgroundColor: AppColors.neonPink),
-                child: Text('Open settings', style: GoogleFonts.inter(color: AppColors.offWhite)),
+    if (!overlay) {
+      missing.add(_PermItem(
+        icon: Icons.layers_outlined,
+        title: 'Display Over Other Apps',
+        description: 'Shows the focus screen on top of blocked apps.',
+        onGrant: ZenPlatform.openOverlaySettings,
+      ));
+    }
+    if (!notification) {
+      missing.add(_PermItem(
+        icon: Icons.notifications_off_outlined,
+        title: 'Notification Access',
+        description: 'Hides notifications from blocked apps during focus.',
+        onGrant: ZenPlatform.openNotificationListenerSettings,
+      ));
+    }
+
+    if (!context.mounted) return false;
+    final granted = missing.length;
+    final open = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(
+          '$granted permission${granted > 1 ? 's' : ''} needed',
+          style: GoogleFonts.spaceMono(color: AppColors.offWhite, fontSize: 18),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (int i = 0; i < missing.length; i++) ...[
+              if (i > 0) const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.neonPink.withValues(alpha: 0.15),
+                      border: Border.all(color: AppColors.neonPink, width: 1),
+                    ),
+                    child: Icon(missing[i].icon, color: AppColors.neonPink, size: 18),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          missing[i].title,
+                          style: GoogleFonts.spaceMono(
+                            color: AppColors.offWhite,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          missing[i].description,
+                          style: GoogleFonts.inter(
+                            color: AppColors.mutedForeground,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ],
+            if (missing.length > 1) ...[
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.muted,
+                  border: Border.all(color: AppColors.disabled, width: 1),
+                ),
+                child: Text(
+                  'You\'ll be guided to grant each permission one at a time.',
+                  style: GoogleFonts.inter(
+                    color: AppColors.mutedForeground,
+                    fontSize: 11,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: Text('Later', style: GoogleFonts.inter(color: AppColors.mutedForeground)),
           ),
-        );
-        if (open == true) await ZenPlatform.openNotificationListenerSettings();
-        return false;
-      }
-    }
-    return true;
+          FilledButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.neonPink,
+              side: const BorderSide(color: AppColors.offWhite, width: 2),
+            ),
+            child: Text(
+              missing.length > 1 ? 'Grant (1 of $granted)' : 'Open Settings',
+              style: GoogleFonts.inter(color: AppColors.offWhite),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (open == true) await missing.first.onGrant();
+    return false;
   }
+}
+
+class _PermItem {
+  const _PermItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+    required this.onGrant,
+  });
+
+  final IconData icon;
+  final String title;
+  final String description;
+  final Future<void> Function() onGrant;
 }
 
 class _BlockedAppsList extends StatelessWidget {

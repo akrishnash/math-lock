@@ -249,20 +249,9 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
                           ),
                         ),
                       ],
-                      Container(
-                        padding: const EdgeInsets.all(32),
-                        decoration: BoxDecoration(
-                          color: AppColors.surface,
-                          border: Border.all(color: AppColors.offWhite, width: 4),
-                        ),
-                        child: Text(
-                          q?.prompt ?? '',
-                          style: GoogleFonts.spaceMono(
-                            fontSize: 24,
-                            color: AppColors.offWhite,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
+                      _MathPromptCard(
+                        prompt: q?.prompt ?? '',
+                        accentColor: _accentColor,
                       ),
                       const SizedBox(height: 24),
                       if (isMultipleChoice) ...[
@@ -393,6 +382,83 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _MathPromptCard extends StatelessWidget {
+  const _MathPromptCard({required this.prompt, required this.accentColor});
+
+  final String prompt;
+  final Color accentColor;
+
+  bool get _isIntegral => prompt.startsWith('∫');
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        border: Border.all(color: AppColors.offWhite, width: 4),
+      ),
+      child: Column(
+        children: [
+          Text(
+            _isIntegral ? 'EVALUATE THE INTEGRAL' : 'SOLVE FOR x',
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              letterSpacing: 2.5,
+              color: accentColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _buildMathText(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMathText() {
+    if (_isIntegral) {
+      // Render ∫ larger, rest normal
+      final parts = prompt.split(' ');
+      // parts[0] = '∫', rest is the expression
+      final rest = parts.sublist(1).join(' ');
+      return RichText(
+        textAlign: TextAlign.center,
+        text: TextSpan(
+          children: [
+            TextSpan(
+              text: '∫ ',
+              style: GoogleFonts.spaceMono(
+                fontSize: 48,
+                color: AppColors.offWhite,
+                height: 1,
+              ),
+            ),
+            TextSpan(
+              text: rest,
+              style: GoogleFonts.spaceMono(
+                fontSize: 26,
+                color: AppColors.offWhite,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    return Text(
+      prompt,
+      style: GoogleFonts.spaceMono(
+        fontSize: 28,
+        color: AppColors.offWhite,
+        height: 1.4,
+      ),
+      textAlign: TextAlign.center,
     );
   }
 }
