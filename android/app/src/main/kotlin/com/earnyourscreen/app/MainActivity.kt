@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import androidx.core.view.WindowCompat
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.EventChannel
@@ -132,6 +133,7 @@ class MainActivity : FlutterActivity() {
   private var pendingUnlockIntent: Map<String, Any>? = null
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    WindowCompat.setDecorFitsSystemWindows(window, false)
     super.onCreate(savedInstanceState)
     Log.d(TAG, "onCreate intent extras: ${intent?.extras?.keySet()}")
     captureUnlockIntent(intent)
