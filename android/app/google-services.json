@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "908300702285-opbko6rgc6qgn92ep71eq0a479d90pok.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.earnyourscreen.app",
+            "certificate_hash": "9469bcea8211a788e88a1f1a34de5289bbaaaba9"
+          }
+        },
+        {
           "client_id": "908300702285-ppg97e7u95l8mkec2l00pdta21pcsj6l.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
