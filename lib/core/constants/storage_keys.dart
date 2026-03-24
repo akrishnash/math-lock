@@ -18,4 +18,5 @@ class StorageKeys {
   static const String unlockViaProblemCount = 'unlock_via_problem_count';
   static const String unlockViaProblemHistory = 'unlock_via_problem_history';
   static const String authSkipped = 'auth_skipped'; // bool: user chose "Skip" on login
+  static const String onboardingCompleted = 'onboarding_completed'; // bool
 }

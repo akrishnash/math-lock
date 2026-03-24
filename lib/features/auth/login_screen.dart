@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:shared_preferences/shared_preferences.dart';
+
+import '../../core/constants/storage_keys.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/app_log.dart' as app_log;
-import 'auth_state.dart';
 import 'auth_service.dart';
 
 /// Maps sign-in exceptions to user-friendly messages and setup hints.
@@ -46,7 +48,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
       final user = await AuthService.signInWithGoogle();
       if (!mounted) return;
       if (user != null) {
-        context.go('/');
+        final prefs = await SharedPreferences.getInstance();
+        final onboarded = prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
+        final destination = onboarded ? '/' : '/onboarding';
+        if (!mounted) return;
+        context.go(destination);
       } else {
         setState(() {
           _loading = false;
@@ -226,43 +232,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   ],
                                 ),
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Expanded(child: Divider(color: AppColors.disabled, thickness: 1)),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 12),
-                              child: Text(
-                                'or',
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  color: AppColors.disabled,
-                                ),
-                              ),
-                            ),
-                            Expanded(child: Divider(color: AppColors.disabled, thickness: 1)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        TextButton(
-                          onPressed: _loading
-                              ? null
-                              : () async {
-                                  await ref.read(authSkippedProvider.notifier).setSkipped(true);
-                                  if (context.mounted) context.go('/');
-                                },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            side: BorderSide(color: AppColors.disabled, width: 1),
-                          ),
-                          child: Text(
-                            'Continue without account',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              color: AppColors.mutedForeground,
-                            ),
-                          ),
                         ),
                       ],
                     ),

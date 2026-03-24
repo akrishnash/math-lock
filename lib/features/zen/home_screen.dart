@@ -84,8 +84,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     }
     // No pending unlock: if not authenticated, send to login
     final user = ref.read(authStateProvider).valueOrNull;
-    final skipped = ref.read(authSkippedProvider);
-    if (user == null && !skipped && mounted) {
+    if (user == null && mounted) {
       app_log.log('Home', 'no pending intent, not auth -> /login');
       context.go('/login');
     }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import 'features/auth/auth_state.dart';
 import 'features/auth/login_screen.dart';
+import 'features/onboarding/onboarding_screen.dart';
 import 'features/problems/problem_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/stats/stats_screen.dart';
@@ -25,19 +26,18 @@ GoRouter createRouter(WidgetRef ref) {
     refreshListenable: authRefresh,
     redirect: (context, state) {
       final authAsync = ref.read(authStateProvider);
-      final skipped = ref.read(authSkippedProvider);
       final location = state.matchedLocation;
       final isLogin = location == '/login';
       // Allow without auth: login, intervention, challenge, block; and / so home can handle pending unlock then redirect
       final isAuthOptional = isLogin ||
           location == '/' ||
+          location == '/onboarding' ||
           location == '/intervention' ||
           location == '/challenge' ||
           location == '/block';
       return authAsync.when(
         data: (user) {
           if (user != null) return null;
-          if (skipped) return null;
           if (isAuthOptional) return null;
           return '/login';
         },
@@ -49,6 +49,10 @@ GoRouter createRouter(WidgetRef ref) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
+      ),
+      GoRoute(
+        path: '/onboarding',
+        builder: (context, state) => const OnboardingScreen(),
       ),
       GoRoute(
         path: '/',
