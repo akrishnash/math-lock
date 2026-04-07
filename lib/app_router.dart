@@ -1,7 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
+import 'core/constants/storage_keys.dart';
 import 'features/auth/auth_state.dart';
 import 'features/auth/login_screen.dart';
 import 'features/onboarding/onboarding_screen.dart';
@@ -24,19 +26,25 @@ GoRouter createRouter(WidgetRef ref) {
   return GoRouter(
     initialLocation: '/',
     refreshListenable: authRefresh,
-    redirect: (context, state) {
+    redirect: (context, state) async {
       final authAsync = ref.read(authStateProvider);
+      final prefs = await SharedPreferences.getInstance();
+      final onboardingCompleted = prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
       final location = state.matchedLocation;
       final isLogin = location == '/login';
-      // Allow without auth: login, intervention, challenge, block; and / so home can handle pending unlock then redirect
-      final isAuthOptional = isLogin ||
-          location == '/' ||
-          location == '/onboarding' ||
-          location == '/intervention' ||
-          location == '/challenge' ||
-          location == '/block';
+      final isOnboarding = location == '/onboarding';
+      // Allow without auth: login, intervention, challenge, block; and / so home can
+      // handle pending unlock intent before deciding where to send the user.
+      final isAuthOptional = isLogin || location == '/' || location == '/intervention' || location == '/challenge' || location == '/block';
       return authAsync.when(
         data: (user) {
+          if (!onboardingCompleted) {
+            if (isOnboarding) return null;
+            return '/onboarding';
+          }
+          if (isOnboarding) {
+            return user == null ? '/login' : '/';
+          }
           if (user != null) return null;
           if (isAuthOptional) return null;
           return '/login';
