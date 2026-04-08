@@ -5,9 +5,22 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/storage_keys.dart';
-import '../../core/theme/app_colors.dart';
 import '../auth/auth_service.dart';
 import '../settings/settings_state.dart';
+
+// ── Design tokens ─────────────────────────────────────────────────────────────
+
+const _bgColors = [Color(0xFF090F1A), Color(0xFF0B1C26), Color(0xFF0C1F1A)];
+const _bgStops = [0.0, 0.45, 1.0];
+
+const _white = Colors.white;
+const _white70 = Color(0xB3FFFFFF);
+const _white40 = Color(0x66FFFFFF);
+const _white15 = Color(0x26FFFFFF);
+const _white10 = Color(0x1AFFFFFF);
+const _white08 = Color(0x14FFFFFF);
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 class OnboardingScreen extends ConsumerStatefulWidget {
   const OnboardingScreen({super.key});
@@ -25,66 +38,43 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   String _selectedTopic = 'mixed';
   ProblemDifficulty _selectedDifficulty = ProblemDifficulty.easy;
 
+  // 6 pages: 0=welcome, 1=goal, 2=topic, 3=difficulty, 4=loading, 5=sign-in
+  static const _totalPages = 6;
+
   static const _goals = <_GoalOption>[
     _GoalOption(
       id: 'focus',
-      title: 'Stay focused',
-      subtitle: 'Block distractions while studying or working.',
+      title: 'Stay Focused',
+      subtitle: 'Block distractions\nwhile you work',
       icon: Icons.center_focus_strong_rounded,
-      color: AppColors.neonPink,
     ),
     _GoalOption(
       id: 'discipline',
-      title: 'Build discipline',
-      subtitle: 'Add friction before social and entertainment apps.',
+      title: 'Build Discipline',
+      subtitle: 'Add friction before\nsocial apps',
       icon: Icons.fitness_center_rounded,
-      color: AppColors.neonYellow,
     ),
     _GoalOption(
       id: 'screen-time',
-      title: 'Reduce screen time',
-      subtitle: 'Use short unlock windows so your usage naturally drops.',
+      title: 'Less Screen Time',
+      subtitle: 'Unlock windows keep\nusage low',
       icon: Icons.hourglass_top_rounded,
-      color: AppColors.neonCyan,
+    ),
+    _GoalOption(
+      id: 'mindful',
+      title: 'Be Mindful',
+      subtitle: 'Pause and reflect\nbefore opening apps',
+      icon: Icons.self_improvement_rounded,
     ),
   ];
 
   static const _topics = <_TopicOption>[
-    _TopicOption(
-      id: 'mixed',
-      icon: Icons.shuffle_rounded,
-      label: 'Mixed',
-      subtitle: 'A bit of everything',
-      color: AppColors.neonPink,
-    ),
-    _TopicOption(
-      id: 'arithmetic',
-      icon: Icons.calculate_outlined,
-      label: 'Arithmetic',
-      subtitle: 'Linear equations and quick math',
-      color: AppColors.neonCyan,
-    ),
-    _TopicOption(
-      id: 'algebra',
-      icon: Icons.functions_outlined,
-      label: 'Algebra',
-      subtitle: 'Variables and expressions',
-      color: AppColors.neonPurple,
-    ),
-    _TopicOption(
-      id: 'integration',
-      icon: Icons.area_chart_outlined,
-      label: 'Integration',
-      subtitle: 'Definite and basic integral practice',
-      color: AppColors.neonYellow,
-    ),
-    _TopicOption(
-      id: 'geography',
-      icon: Icons.public_outlined,
-      label: 'Geography',
-      subtitle: 'World capitals quiz',
-      color: AppColors.neonGreen,
-    ),
+    _TopicOption(id: 'mixed', icon: Icons.shuffle_rounded, label: 'Mixed', subtitle: 'A bit of everything'),
+    _TopicOption(id: 'arithmetic', icon: Icons.calculate_outlined, label: 'Arithmetic', subtitle: 'Quick mental math'),
+    _TopicOption(id: 'algebra', icon: Icons.functions_outlined, label: 'Algebra', subtitle: 'Variables & expressions'),
+    _TopicOption(id: 'integration', icon: Icons.area_chart_outlined, label: 'Calculus', subtitle: 'Integral practice'),
+    _TopicOption(id: 'geography', icon: Icons.public_outlined, label: 'Geography', subtitle: 'World capitals'),
+    _TopicOption(id: 'logic', icon: Icons.psychology_outlined, label: 'Logic', subtitle: 'Patterns & sequences'),
   ];
 
   @override
@@ -100,9 +90,9 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   Future<void> _next() async {
-    if (_page >= 4) return;
+    if (_page >= _totalPages - 1) return;
     await _pageController.nextPage(
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
     );
   }
@@ -110,7 +100,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _back() async {
     if (_page <= 0) return;
     await _pageController.previousPage(
-      duration: const Duration(milliseconds: 220),
+      duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
     );
   }
@@ -155,8 +145,10 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(message),
-        backgroundColor: AppColors.destructive,
+        content: Text(message, style: GoogleFonts.inter()),
+        backgroundColor: const Color(0xFF2A1A1A),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -164,532 +156,65 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: 8),
-            _ProgressBar(currentStep: _page + 1, totalSteps: 5),
-            const SizedBox(height: 12),
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                onPageChanged: (value) => setState(() => _page = value),
-                children: [
-                  _WelcomeStep(onNext: _next),
-                  _GoalStep(
-                    options: _goals,
-                    selected: _goal,
-                    onSelected: (id) => setState(() => _goal = id),
-                    onNext: _next,
-                    onBack: _back,
-                  ),
-                  _TopicStep(
-                    options: _topics,
-                    selected: _selectedTopic,
-                    onSelected: (id) => setState(() => _selectedTopic = id),
-                    onNext: _next,
-                    onBack: _back,
-                  ),
-                  _DifficultyStep(
-                    selected: _selectedDifficulty,
-                    onSelected: (difficulty) => setState(() => _selectedDifficulty = difficulty),
-                    onNext: _next,
-                    onBack: _back,
-                  ),
-                  _SignInStep(
-                    saving: _saving,
-                    onBack: _back,
-                    onSignIn: _signInAndFinish,
-                    onSkip: _finishWithoutAccount,
-                  ),
-                ],
-              ),
-            ),
-          ],
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: _bgColors,
+            stops: _bgStops,
+          ),
         ),
-      ),
-    );
-  }
-}
-
-String _userFriendlySignInError(Object e) {
-  final s = e.toString().toLowerCase();
-  if (s.contains('apiexception') || s.contains(' 10 ') || s.contains('10]')) {
-    return 'Google Sign-In is not configured for this build yet. Check Firebase SHA-1 and web client ID.';
-  }
-  if (s.contains('network') || s.contains('connection')) {
-    return 'Network error. Check your connection and try again.';
-  }
-  if (s.contains('firebase') || s.contains('initialize')) {
-    return 'Firebase setup is incomplete for this app build.';
-  }
-  return 'Unable to sign in right now. Please try again.';
-}
-
-class _ProgressBar extends StatelessWidget {
-  const _ProgressBar({required this.currentStep, required this.totalSteps});
-
-  final int currentStep;
-  final int totalSteps;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
-        children: List.generate(totalSteps, (index) {
-          final active = index < currentStep;
-          return Expanded(
-            child: Container(
-              margin: EdgeInsets.only(right: index == totalSteps - 1 ? 0 : 8),
-              height: 4,
-              decoration: BoxDecoration(
-                color: active ? AppColors.neonPink : AppColors.surface,
-                borderRadius: BorderRadius.circular(999),
-              ),
-            ),
-          );
-        }),
-      ),
-    );
-  }
-}
-
-class _WelcomeStep extends StatelessWidget {
-  const _WelcomeStep({required this.onNext});
-
-  final VoidCallback onNext;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 12, 24, 28),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          const Spacer(),
-          Container(
-            height: 140,
-            width: 140,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              shape: BoxShape.circle,
-              border: Border.all(color: AppColors.neonPink, width: 3),
-            ),
-            child: const Icon(
-              Icons.lock_clock_outlined,
-              color: AppColors.neonPink,
-              size: 64,
-            ),
-          ),
-          const SizedBox(height: 28),
-          Text(
-            'Earn your screen time.',
-            style: GoogleFonts.spaceMono(
-              color: AppColors.offWhite,
-              fontSize: 28,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'We will set up your unlock challenges in under a minute.',
-            style: GoogleFonts.inter(
-              color: AppColors.mutedForeground,
-              fontSize: 15,
-            ),
-          ),
-          const Spacer(),
-          FilledButton(
-            onPressed: onNext,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.neonPink,
-              foregroundColor: AppColors.offWhite,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              side: const BorderSide(color: AppColors.offWhite, width: 3),
-            ),
-            child: Text(
-              'Start setup',
-              style: GoogleFonts.spaceMono(fontSize: 16, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _GoalStep extends StatelessWidget {
-  const _GoalStep({
-    required this.options,
-    required this.selected,
-    required this.onSelected,
-    required this.onNext,
-    required this.onBack,
-  });
-
-  final List<_GoalOption> options;
-  final String selected;
-  final ValueChanged<String> onSelected;
-  final VoidCallback onNext;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepFrame(
-      title: 'What is your main goal?',
-      subtitle: 'Pick the one that best describes why you are installing this.',
-      onBack: onBack,
-      onNext: onNext,
-      child: Column(
-        children: options.map((goal) {
-          final isSelected = selected == goal.id;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SelectableCard(
-              selected: isSelected,
-              color: goal.color,
-              title: goal.title,
-              subtitle: goal.subtitle,
-              leading: Icon(goal.icon, color: goal.color),
-              onTap: () => onSelected(goal.id),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _TopicStep extends StatelessWidget {
-  const _TopicStep({
-    required this.options,
-    required this.selected,
-    required this.onSelected,
-    required this.onNext,
-    required this.onBack,
-  });
-
-  final List<_TopicOption> options;
-  final String selected;
-  final ValueChanged<String> onSelected;
-  final VoidCallback onNext;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepFrame(
-      title: 'Choose your challenge topic',
-      subtitle: 'You can change this anytime from settings.',
-      onBack: onBack,
-      onNext: onNext,
-      child: Column(
-        children: options.map((topic) {
-          final isSelected = selected == topic.id;
-          return Padding(
-            padding: const EdgeInsets.only(bottom: 10),
-            child: _SelectableCard(
-              selected: isSelected,
-              color: topic.color,
-              title: topic.label,
-              subtitle: topic.subtitle,
-              leading: Icon(topic.icon, color: topic.color),
-              onTap: () => onSelected(topic.id),
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-}
-
-class _DifficultyStep extends StatelessWidget {
-  const _DifficultyStep({
-    required this.selected,
-    required this.onSelected,
-    required this.onNext,
-    required this.onBack,
-  });
-
-  final ProblemDifficulty selected;
-  final ValueChanged<ProblemDifficulty> onSelected;
-  final VoidCallback onNext;
-  final VoidCallback onBack;
-
-  @override
-  Widget build(BuildContext context) {
-    return _StepFrame(
-      title: 'Select difficulty',
-      subtitle: 'Medium uses larger numbers and tougher calculations.',
-      onBack: onBack,
-      onNext: onNext,
-      nextLabel: 'Continue',
-      child: Column(
-        children: [
-          _SelectableCard(
-            selected: selected == ProblemDifficulty.easy,
-            color: AppColors.neonGreen,
-            title: 'Easy',
-            subtitle: 'Fast to solve when you need quick unlocks.',
-            leading: const Icon(Icons.flash_on, color: AppColors.neonGreen),
-            onTap: () => onSelected(ProblemDifficulty.easy),
-          ),
-          const SizedBox(height: 10),
-          _SelectableCard(
-            selected: selected == ProblemDifficulty.medium,
-            color: AppColors.neonPink,
-            title: 'Medium',
-            subtitle: 'Longer focus break with more challenge.',
-            leading: const Icon(Icons.bolt, color: AppColors.neonPink),
-            onTap: () => onSelected(ProblemDifficulty.medium),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SignInStep extends StatelessWidget {
-  const _SignInStep({
-    required this.saving,
-    required this.onBack,
-    required this.onSignIn,
-    required this.onSkip,
-  });
-
-  final bool saving;
-  final VoidCallback onBack;
-  final VoidCallback onSignIn;
-  final VoidCallback onSkip;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextButton.icon(
-            onPressed: saving ? null : onBack,
-            icon: const Icon(Icons.arrow_back, size: 18),
-            label: Text(
-              'Back',
-              style: GoogleFonts.inter(fontSize: 14),
-            ),
-            style: TextButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              foregroundColor: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Text(
-            'Last step: sign in',
-            style: GoogleFonts.spaceMono(
-              color: AppColors.offWhite,
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Save your settings and stats across devices. You can also continue without an account.',
-            style: GoogleFonts.inter(
-              color: AppColors.mutedForeground,
-              fontSize: 14,
-            ),
-          ),
-          const Spacer(),
-          FilledButton(
-            onPressed: saving ? null : onSignIn,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.neonPink,
-              foregroundColor: AppColors.offWhite,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              side: const BorderSide(color: AppColors.offWhite, width: 3),
-            ),
-            child: saving
-                ? const SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: AppColors.offWhite,
-                    ),
-                  )
-                : Text(
-                    'Continue with Google',
-                    style: GoogleFonts.spaceMono(fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: saving ? null : onSkip,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.mutedForeground,
-              side: const BorderSide(color: AppColors.disabled, width: 1.5),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-            ),
-            child: Text(
-              'Continue without account',
-              style: GoogleFonts.inter(fontSize: 14),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StepFrame extends StatelessWidget {
-  const _StepFrame({
-    required this.title,
-    required this.subtitle,
-    required this.child,
-    required this.onBack,
-    required this.onNext,
-    this.nextLabel = 'Next',
-  });
-
-  final String title;
-  final String subtitle;
-  final Widget child;
-  final VoidCallback onBack;
-  final VoidCallback onNext;
-  final String nextLabel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextButton.icon(
-            onPressed: onBack,
-            icon: const Icon(Icons.arrow_back, size: 18),
-            label: Text(
-              'Back',
-              style: GoogleFonts.inter(fontSize: 14),
-            ),
-            style: TextButton.styleFrom(
-              alignment: Alignment.centerLeft,
-              foregroundColor: AppColors.mutedForeground,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            title,
-            style: GoogleFonts.spaceMono(
-              color: AppColors.offWhite,
-              fontSize: 24,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: GoogleFonts.inter(
-              color: AppColors.mutedForeground,
-              fontSize: 14,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Expanded(
-            child: SingleChildScrollView(
-              child: child,
-            ),
-          ),
-          const SizedBox(height: 14),
-          FilledButton(
-            onPressed: onNext,
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.neonPink,
-              foregroundColor: AppColors.offWhite,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              side: const BorderSide(color: AppColors.offWhite, width: 3),
-            ),
-            child: Text(
-              nextLabel,
-              style: GoogleFonts.spaceMono(fontSize: 15, fontWeight: FontWeight.w700),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SelectableCard extends StatelessWidget {
-  const _SelectableCard({
-    required this.selected,
-    required this.color,
-    required this.title,
-    required this.subtitle,
-    required this.leading,
-    required this.onTap,
-  });
-
-  final bool selected;
-  final Color color;
-  final String title;
-  final String subtitle;
-  final Widget leading;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: selected ? color.withValues(alpha: 0.12) : AppColors.surface,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: selected ? color : AppColors.disabled,
-              width: selected ? 2 : 1,
-            ),
-          ),
-          child: Row(
+        child: SafeArea(
+          child: Column(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: selected ? 0.22 : 0.08),
-                  border: Border.all(color: color.withValues(alpha: 0.7)),
-                ),
-                child: Center(child: leading),
-              ),
-              const SizedBox(width: 12),
+              if (_page >= 1 && _page <= 3) ...[
+                const SizedBox(height: 16),
+                _DotsProgress(current: _page - 1, total: 3),
+              ] else
+                const SizedBox(height: 0),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  onPageChanged: (v) => setState(() => _page = v),
                   children: [
-                    Text(
-                      title,
-                      style: GoogleFonts.spaceMono(
-                        color: selected ? color : AppColors.offWhite,
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    // 0 – Welcome
+                    _WelcomeStep(onStart: _next),
+                    // 1 – Goal
+                    _GoalStep(
+                      options: _goals,
+                      selected: _goal,
+                      onSelected: (id) => setState(() => _goal = id),
+                      onNext: _next,
+                      onBack: _back,
                     ),
-                    const SizedBox(height: 3),
-                    Text(
-                      subtitle,
-                      style: GoogleFonts.inter(
-                        color: AppColors.mutedForeground,
-                        fontSize: 12,
-                      ),
+                    // 2 – Topic
+                    _TopicStep(
+                      options: _topics,
+                      selected: _selectedTopic,
+                      onSelected: (id) => setState(() => _selectedTopic = id),
+                      onNext: _next,
+                      onBack: _back,
+                    ),
+                    // 3 – Difficulty
+                    _DifficultyStep(
+                      selected: _selectedDifficulty,
+                      onSelected: (d) => setState(() => _selectedDifficulty = d),
+                      onNext: _next,
+                      onBack: _back,
+                    ),
+                    // 4 – Customizing (loading)
+                    _LoadingStep(onDone: _next),
+                    // 5 – Sign-in
+                    _SignInStep(
+                      saving: _saving,
+                      onSignIn: _signInAndFinish,
+                      onSkip: _finishWithoutAccount,
                     ),
                   ],
                 ),
-              ),
-              Icon(
-                selected ? Icons.check_circle : Icons.radio_button_unchecked,
-                color: selected ? color : AppColors.disabled,
               ),
             ],
           ),
@@ -699,20 +224,801 @@ class _SelectableCard extends StatelessWidget {
   }
 }
 
+// ── Progress dots ─────────────────────────────────────────────────────────────
+
+class _DotsProgress extends StatelessWidget {
+  const _DotsProgress({required this.current, required this.total});
+  final int current;
+  final int total;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(total, (i) {
+        final active = i == current;
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          width: active ? 24 : 8,
+          height: 8,
+          decoration: BoxDecoration(
+            color: active ? _white : _white40,
+            borderRadius: BorderRadius.circular(99),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+// ── Shared pill button ────────────────────────────────────────────────────────
+
+class _PillButton extends StatelessWidget {
+  const _PillButton({
+    required this.label,
+    required this.onPressed,
+    this.primary = true,
+    this.loading = false,
+  });
+  final String label;
+  final VoidCallback? onPressed;
+  final bool primary;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 56,
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary ? _white : Colors.transparent,
+          foregroundColor: primary ? const Color(0xFF0B1827) : _white,
+          elevation: 0,
+          shape: const StadiumBorder(),
+          side: primary ? BorderSide.none : const BorderSide(color: _white40, width: 1.5),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+        child: loading
+            ? SizedBox(
+                width: 22,
+                height: 22,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: primary ? const Color(0xFF0B1827) : _white,
+                ),
+              )
+            : Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+// ── Frosted glass card ────────────────────────────────────────────────────────
+
+class _GlassCard extends StatelessWidget {
+  const _GlassCard({
+    required this.child,
+    this.selected = false,
+    this.onTap,
+    this.padding = const EdgeInsets.all(16),
+  });
+  final Widget child;
+  final bool selected;
+  final VoidCallback? onTap;
+  final EdgeInsets padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+        padding: padding,
+        decoration: BoxDecoration(
+          color: selected ? _white15 : _white08,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: selected ? _white70 : _white15,
+            width: selected ? 1.5 : 1,
+          ),
+        ),
+        child: child,
+      ),
+    );
+  }
+}
+
+// ── 0 · Welcome ───────────────────────────────────────────────────────────────
+
+class _WelcomeStep extends StatelessWidget {
+  const _WelcomeStep({required this.onStart});
+  final VoidCallback onStart;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 0, 28, 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(flex: 3),
+          // Lock icon
+          Center(
+            child: Container(
+              width: 88,
+              height: 88,
+              decoration: BoxDecoration(
+                color: _white10,
+                shape: BoxShape.circle,
+                border: Border.all(color: _white40, width: 1.5),
+              ),
+              child: const Icon(Icons.lock_outline_rounded, color: _white, size: 40),
+            ),
+          ),
+          const SizedBox(height: 32),
+          Text(
+            'Math Lock',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: _white,
+              fontSize: 36,
+              fontWeight: FontWeight.w300,
+              letterSpacing: 2,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Solve a math problem to unlock\nyour apps. Build focus. Earn your screen time.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: _white70,
+              fontSize: 15,
+              height: 1.6,
+            ),
+          ),
+          const Spacer(flex: 4),
+          _PillButton(label: 'Get Started', onPressed: onStart),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              'Takes less than a minute',
+              style: GoogleFonts.inter(color: _white40, fontSize: 13),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 1 · Goal ──────────────────────────────────────────────────────────────────
+
+class _GoalStep extends StatelessWidget {
+  const _GoalStep({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    required this.onNext,
+    required this.onBack,
+  });
+  final List<_GoalOption> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BackLink(onTap: onBack),
+          const SizedBox(height: 20),
+          Text(
+            'What is your\nprimary goal?',
+            style: GoogleFonts.inter(
+              color: _white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Pick the one that fits best.',
+            style: GoogleFonts.inter(color: _white70, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: _GoalGrid(
+              options: options,
+              selected: selected,
+              onSelected: onSelected,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _PillButton(
+            label: 'Next',
+            onPressed: selected.isNotEmpty ? onNext : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalGrid extends StatelessWidget {
+  const _GoalGrid({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+  });
+  final List<_GoalOption> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    // 2×2 grid
+    final rows = <Widget>[];
+    for (var i = 0; i < options.length; i += 2) {
+      rows.add(
+        Expanded(
+          child: Row(
+            children: [
+              Expanded(
+                child: _GoalCard(
+                  option: options[i],
+                  selected: selected == options[i].id,
+                  onTap: () => onSelected(options[i].id),
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (i + 1 < options.length)
+                Expanded(
+                  child: _GoalCard(
+                    option: options[i + 1],
+                    selected: selected == options[i + 1].id,
+                    onTap: () => onSelected(options[i + 1].id),
+                  ),
+                )
+              else
+                const Expanded(child: SizedBox()),
+            ],
+          ),
+        ),
+      );
+      if (i + 2 < options.length) rows.add(const SizedBox(height: 12));
+    }
+    return Column(children: rows);
+  }
+}
+
+class _GoalCard extends StatelessWidget {
+  const _GoalCard({
+    required this.option,
+    required this.selected,
+    required this.onTap,
+  });
+  final _GoalOption option;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassCard(
+      selected: selected,
+      onTap: onTap,
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Icon(option.icon, color: selected ? _white : _white70, size: 28),
+          const SizedBox(height: 12),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                option.title,
+                style: GoogleFonts.inter(
+                  color: _white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                option.subtitle,
+                style: GoogleFonts.inter(color: _white70, fontSize: 11, height: 1.4),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 2 · Topic ─────────────────────────────────────────────────────────────────
+
+class _TopicStep extends StatelessWidget {
+  const _TopicStep({
+    required this.options,
+    required this.selected,
+    required this.onSelected,
+    required this.onNext,
+    required this.onBack,
+  });
+  final List<_TopicOption> options;
+  final String selected;
+  final ValueChanged<String> onSelected;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BackLink(onTap: onBack),
+          const SizedBox(height: 20),
+          Text(
+            'Choose your\nchallenge topic',
+            style: GoogleFonts.inter(
+              color: _white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'You can change this anytime in settings.',
+            style: GoogleFonts.inter(color: _white70, fontSize: 14),
+          ),
+          const SizedBox(height: 24),
+          Expanded(
+            child: GridView.count(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 1.55,
+              physics: const NeverScrollableScrollPhysics(),
+              padding: EdgeInsets.zero,
+              children: options.map((topic) {
+                final sel = selected == topic.id;
+                return _GlassCard(
+                  selected: sel,
+                  onTap: () => onSelected(topic.id),
+                  padding: const EdgeInsets.all(14),
+                  child: Row(
+                    children: [
+                      Icon(topic.icon, color: sel ? _white : _white70, size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              topic.label,
+                              style: GoogleFonts.inter(
+                                color: _white,
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              topic.subtitle,
+                              style: GoogleFonts.inter(
+                                color: _white70,
+                                fontSize: 10,
+                                height: 1.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          _PillButton(
+            label: 'Next',
+            onPressed: selected.isNotEmpty ? onNext : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 3 · Difficulty ────────────────────────────────────────────────────────────
+
+class _DifficultyStep extends StatelessWidget {
+  const _DifficultyStep({
+    required this.selected,
+    required this.onSelected,
+    required this.onNext,
+    required this.onBack,
+  });
+  final ProblemDifficulty selected;
+  final ValueChanged<ProblemDifficulty> onSelected;
+  final VoidCallback onNext;
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _BackLink(onTap: onBack),
+          const SizedBox(height: 20),
+          Text(
+            'How tough\nshould the lock be?',
+            style: GoogleFonts.inter(
+              color: _white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Medium problems take longer — adding real friction.',
+            style: GoogleFonts.inter(color: _white70, fontSize: 14),
+          ),
+          const SizedBox(height: 32),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(
+                  child: _DifficultyCard(
+                    title: 'Easy',
+                    subtitle: 'Quick calculations. Perfect for light friction during the day.',
+                    icon: Icons.flash_on_rounded,
+                    selected: selected == ProblemDifficulty.easy,
+                    onTap: () => onSelected(ProblemDifficulty.easy),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: _DifficultyCard(
+                    title: 'Medium',
+                    subtitle: 'Longer problems that require focus. A real pause before unlocking.',
+                    icon: Icons.bolt_rounded,
+                    selected: selected == ProblemDifficulty.medium,
+                    onTap: () => onSelected(ProblemDifficulty.medium),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          _PillButton(label: 'Continue', onPressed: onNext),
+        ],
+      ),
+    );
+  }
+}
+
+class _DifficultyCard extends StatelessWidget {
+  const _DifficultyCard({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassCard(
+      selected: selected,
+      onTap: onTap,
+      padding: const EdgeInsets.all(22),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: selected ? _white15 : _white08,
+              shape: BoxShape.circle,
+              border: Border.all(color: selected ? _white70 : _white40, width: 1),
+            ),
+            child: Icon(icon, color: _white, size: 26),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    color: _white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: GoogleFonts.inter(color: _white70, fontSize: 13, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: selected ? _white : Colors.transparent,
+              border: Border.all(color: selected ? _white : _white40, width: 1.5),
+            ),
+            child: selected
+                ? const Icon(Icons.check, size: 14, color: Color(0xFF0B1827))
+                : null,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 4 · Loading ───────────────────────────────────────────────────────────────
+
+class _LoadingStep extends StatefulWidget {
+  const _LoadingStep({required this.onDone});
+  final VoidCallback onDone;
+
+  @override
+  State<_LoadingStep> createState() => _LoadingStepState();
+}
+
+class _LoadingStepState extends State<_LoadingStep>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+  int _msgIndex = 0;
+
+  static const _messages = [
+    'Customizing your lock...',
+    'Setting up challenges...',
+    'Finalizing your profile...',
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _scale = Tween<double>(begin: 0.72, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+
+    // Cycle through messages
+    Future.delayed(const Duration(milliseconds: 900), () {
+      if (mounted) setState(() => _msgIndex = 1);
+    });
+    Future.delayed(const Duration(milliseconds: 1800), () {
+      if (mounted) setState(() => _msgIndex = 2);
+    });
+    Future.delayed(const Duration(milliseconds: 2800), () {
+      if (mounted) widget.onDone();
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          ScaleTransition(
+            scale: _scale,
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: _white40, width: 1.5),
+                color: _white08,
+              ),
+              child: const Icon(Icons.lock_outline_rounded, color: _white, size: 44),
+            ),
+          ),
+          const SizedBox(height: 48),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 400),
+            child: Text(
+              _messages[_msgIndex],
+              key: ValueKey(_msgIndex),
+              style: GoogleFonts.inter(
+                color: _white70,
+                fontSize: 16,
+                fontWeight: FontWeight.w300,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── 5 · Sign-in ───────────────────────────────────────────────────────────────
+
+class _SignInStep extends StatelessWidget {
+  const _SignInStep({
+    required this.saving,
+    required this.onSignIn,
+    required this.onSkip,
+  });
+  final bool saving;
+  final VoidCallback onSignIn;
+  final VoidCallback onSkip;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 0, 28, 36),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Spacer(flex: 2),
+          Center(
+            child: Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: _white10,
+                shape: BoxShape.circle,
+                border: Border.all(color: _white40, width: 1.5),
+              ),
+              child: const Icon(Icons.person_outline_rounded, color: _white, size: 32),
+            ),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            'One last step',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(
+              color: _white,
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Sign in to sync your stats and settings across devices. You can always skip this.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.inter(color: _white70, fontSize: 14, height: 1.6),
+          ),
+          const Spacer(flex: 3),
+          _PillButton(
+            label: 'Continue with Google',
+            onPressed: saving ? null : onSignIn,
+            loading: saving,
+          ),
+          const SizedBox(height: 12),
+          _PillButton(
+            label: 'Continue without account',
+            onPressed: saving ? null : onSkip,
+            primary: false,
+          ),
+          const SizedBox(height: 20),
+          Center(
+            child: Text(
+              'You can sign in later from settings',
+              style: GoogleFonts.inter(color: _white40, fontSize: 12),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Back link ─────────────────────────────────────────────────────────────────
+
+class _BackLink extends StatelessWidget {
+  const _BackLink({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.arrow_back_ios_new_rounded, color: _white70, size: 14),
+            const SizedBox(width: 4),
+            Text(
+              'Back',
+              style: GoogleFonts.inter(color: _white70, fontSize: 14),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Error helper ──────────────────────────────────────────────────────────────
+
+String _userFriendlySignInError(Object e) {
+  final s = e.toString().toLowerCase();
+  if (s.contains('apiexception') || s.contains(' 10 ') || s.contains('10]')) {
+    return 'Google Sign-In is not configured for this build.';
+  }
+  if (s.contains('network') || s.contains('connection')) {
+    return 'Network error. Check your connection and try again.';
+  }
+  if (s.contains('firebase') || s.contains('initialize')) {
+    return 'Firebase setup is incomplete for this build.';
+  }
+  return 'Unable to sign in right now. Please try again.';
+}
+
+// ── Data models ───────────────────────────────────────────────────────────────
+
 class _GoalOption {
   const _GoalOption({
     required this.id,
     required this.title,
     required this.subtitle,
     required this.icon,
-    required this.color,
   });
-
   final String id;
   final String title;
   final String subtitle;
   final IconData icon;
-  final Color color;
 }
 
 class _TopicOption {
@@ -721,12 +1027,9 @@ class _TopicOption {
     required this.icon,
     required this.label,
     required this.subtitle,
-    required this.color,
   });
-
   final String id;
   final IconData icon;
   final String label;
   final String subtitle;
-  final Color color;
 }

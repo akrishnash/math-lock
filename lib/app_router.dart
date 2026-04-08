@@ -18,13 +18,13 @@ class _AuthRefreshNotifier extends ChangeNotifier {
   void refresh() => notifyListeners();
 }
 
-GoRouter createRouter(WidgetRef ref) {
+GoRouter createRouter(WidgetRef ref, {String initialLocation = '/'}) {
   final authRefresh = _AuthRefreshNotifier();
   ref.listen(authStateProvider, (previous, next) => authRefresh.refresh());
   ref.listen(authSkippedProvider, (previous, next) => authRefresh.refresh());
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: initialLocation,
     refreshListenable: authRefresh,
     redirect: (context, state) async {
       final authAsync = ref.read(authStateProvider);
@@ -49,8 +49,8 @@ GoRouter createRouter(WidgetRef ref) {
           if (isAuthOptional) return null;
           return '/login';
         },
-        loading: () => null,
-        error: (error, stack) => null,
+        loading: () => (!onboardingCompleted && !isOnboarding) ? '/onboarding' : null,
+        error: (error, stack) => (!onboardingCompleted && !isOnboarding) ? '/onboarding' : null,
       );
     },
     routes: [

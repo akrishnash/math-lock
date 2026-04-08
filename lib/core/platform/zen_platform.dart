@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/services.dart';
 
 import '../models/app_info.dart';
@@ -14,6 +15,7 @@ class ZenPlatform {
 
   /// Get list of installed launchable apps (package name + label).
   static Future<List<AppInfo>> getInstalledApps() async {
+    if (kIsWeb) return [];
     final List<dynamic> raw =
         await _channel.invokeListMethod<dynamic>('getInstalledApps') ?? [];
     return raw
@@ -24,31 +26,37 @@ class ZenPlatform {
 
   /// Open system screen to grant usage stats permission.
   static Future<void> openUsageAccessSettings() async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('openUsageAccessSettings');
   }
 
   /// Returns true if usage stats permission is granted.
   static Future<bool> hasUsageStatsPermission() async {
+    if (kIsWeb) return true;
     return (await _channel.invokeMethod<bool>('hasUsageStatsPermission')) ?? false;
   }
 
   /// Open system screen to grant overlay permission.
   static Future<void> openOverlaySettings() async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('openOverlaySettings');
   }
 
   /// Returns true if overlay permission is granted.
   static Future<bool> hasOverlayPermission() async {
+    if (kIsWeb) return true;
     return (await _channel.invokeMethod<bool>('hasOverlayPermission')) ?? false;
   }
 
   /// Open system screen to grant notification listener permission.
   static Future<void> openNotificationListenerSettings() async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('openNotificationListenerSettings');
   }
 
   /// Returns true if notification listener is enabled.
   static Future<bool> hasNotificationListenerPermission() async {
+    if (kIsWeb) return true;
     return (await _channel.invokeMethod<bool>('hasNotificationListenerPermission')) ??
         false;
   }
@@ -60,6 +68,7 @@ class ZenPlatform {
     required bool allowReopenWithinWindow,
     bool fullLock = false,
   }) async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('startZenMonitoring', {
       'blockedPackageNames': blockedPackageNames,
       'sessionEndMillis': sessionEndMillis,
@@ -70,6 +79,7 @@ class ZenPlatform {
 
   /// Stop zen monitoring and overlay.
   static Future<void> stopZenMonitoring() async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('stopZenMonitoring');
   }
 
@@ -78,6 +88,7 @@ class ZenPlatform {
     required String packageName,
     required int minutes,
   }) async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('allowPackageForMinutes', {
       'packageName': packageName,
       'minutes': minutes,
@@ -86,15 +97,18 @@ class ZenPlatform {
 
   /// Allow full phone unlock for [minutes] (used when lock mode is "full").
   static Future<void> allowFullUnlockForMinutes(int minutes) async {
+    if (kIsWeb) return;
     await _channel.invokeMethod('allowFullUnlockForMinutes', {'minutes': minutes});
   }
 
   /// Stream: when user opens a blocked app, emits map with 'packageName', 'remainingSeconds' (optional).
-  static Stream<Map<dynamic, dynamic>> get blockedAppOpenedStream =>
-      _blockedAppChannel.receiveBroadcastStream().map((e) => e as Map<dynamic, dynamic>);
+  static Stream<Map<dynamic, dynamic>> get blockedAppOpenedStream => kIsWeb
+      ? const Stream.empty()
+      : _blockedAppChannel.receiveBroadcastStream().map((e) => e as Map<dynamic, dynamic>);
 
   /// If the app was launched from overlay "Solve problem", returns the intent data once.
   static Future<Map<String, dynamic>?> getPendingUnlockIntent() async {
+    if (kIsWeb) return null;
     final raw = await _channel.invokeMethod<Map<dynamic, dynamic>>('getPendingUnlockIntent');
     if (raw == null) return null;
     return Map<String, dynamic>.from(raw);
@@ -102,7 +116,7 @@ class ZenPlatform {
 
   /// Launch the app with [packageName] (e.g. after granting grace).
   static Future<void> launchApp(String packageName) async {
-    if (packageName.isEmpty) return;
+    if (kIsWeb || packageName.isEmpty) return;
     await _channel.invokeMethod('launchApp', {'packageName': packageName});
   }
 }

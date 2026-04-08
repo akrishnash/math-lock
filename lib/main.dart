@@ -1,8 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'app.dart';
+import 'core/constants/storage_keys.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,9 +16,16 @@ void main() async {
     // Add google-services.json (Android) and GoogleService-Info.plist (iOS)
     // from Firebase Console to enable Sign in with Google.
   }
+
+  // Determine initial route before the app starts so the router never
+  // briefly renders HomeScreen before redirecting.
+  final prefs = await SharedPreferences.getInstance();
+  final onboardingCompleted = prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
+  final initialRoute = onboardingCompleted ? '/' : '/onboarding';
+
   runApp(
-    const ProviderScope(
-      child: MathLockApp(),
+    ProviderScope(
+      child: MathLockApp(initialRoute: initialRoute),
     ),
   );
 }

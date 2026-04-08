@@ -6,7 +6,8 @@ import 'app_router.dart';
 import 'core/theme/app_colors.dart';
 
 class MathLockApp extends ConsumerWidget {
-  const MathLockApp({super.key});
+  const MathLockApp({super.key, this.initialRoute = '/'});
+  final String initialRoute;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -137,7 +138,7 @@ class MathLockApp extends ConsumerWidget {
         ),
       ),
       themeMode: ThemeMode.dark,
-      routerConfig: createRouter(ref),
+      routerConfig: createRouter(ref, initialLocation: initialRoute),
     );
   }
 }
