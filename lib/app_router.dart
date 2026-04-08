@@ -20,6 +20,7 @@ class _AuthRefreshNotifier extends ChangeNotifier {
 
 GoRouter createRouter(WidgetRef ref) {
   final authRefresh = _AuthRefreshNotifier();
+  const forceOnboardingForTesting = bool.fromEnvironment('FORCE_ONBOARDING', defaultValue: false);
   ref.listen(authStateProvider, (previous, next) => authRefresh.refresh());
   ref.listen(authSkippedProvider, (previous, next) => authRefresh.refresh());
 
@@ -29,7 +30,13 @@ GoRouter createRouter(WidgetRef ref) {
     redirect: (context, state) async {
       final authAsync = ref.read(authStateProvider);
       final prefs = await SharedPreferences.getInstance();
-      final onboardingCompleted = prefs.getBool(StorageKeys.onboardingCompleted) ?? false;
+      final resetOnboarding = state.uri.queryParameters['resetOnboarding'] == '1';
+      if (resetOnboarding) {
+        await prefs.setBool(StorageKeys.onboardingCompleted, false);
+      }
+      final onboardingCompleted = forceOnboardingForTesting
+          ? false
+          : (prefs.getBool(StorageKeys.onboardingCompleted) ?? false);
       final location = state.matchedLocation;
       final isLogin = location == '/login';
       final isOnboarding = location == '/onboarding';

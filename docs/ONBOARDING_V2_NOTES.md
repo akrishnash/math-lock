@@ -42,6 +42,12 @@ Run:
 flutter run -d chrome
 ```
 
+If onboarding was completed in a previous run and you want to force-test the new flow:
+
+```bash
+flutter run -d chrome --dart-define=FORCE_ONBOARDING=true
+```
+
 Checklist:
 
 1. Fresh user (clear shared prefs) should land on `/onboarding`.
@@ -57,4 +63,3 @@ Checklist:
 This rollout is published as a separate version branch:
 
 - `release/onboarding-v2-tide`
-
