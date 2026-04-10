@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/storage_keys.dart';
 import '../auth/auth_service.dart';
+import '../auth/auth_state.dart';
 import '../settings/settings_state.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -139,6 +140,7 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   Future<void> _finishWithoutAccount() async {
     if (_saving) return;
     setState(() => _saving = true);
+    await ref.read(authSkippedProvider.notifier).setSkipped(true);
     await _complete();
   }
 
