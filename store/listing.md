@@ -23,17 +23,17 @@ No nags. No timers to dismiss. Just a quick problem to solve before Instagram, T
 
 ### How It Works
 
-1. **Choose which apps to block** — select any installed app you want to gate
+1. **Choose which apps to block** — select from popular social and entertainment apps
 2. **Start a focus session** — set a duration and tap Block Now
-3. **Solve to unlock** — any time you try to open a blocked app, a math or logic challenge appears
+3. **Solve to unlock** — any time you try to open a blocked app, a math challenge appears
 4. **Correct answer = access** — you get a timed unlock window before the gate closes again
 
 ---
 
 ### Features
 
-- 🔒 **App blocking** — lock Instagram, YouTube, TikTok, or any app you choose
-- 🧮 **Math & logic challenges** — arithmetic, algebra, calculus integrals, geography capitals, and mixed topics
+- 🔒 **App blocking** — lock Instagram, YouTube, TikTok, and other popular social apps
+- 🧮 **Math challenges** — arithmetic, algebra, calculus integrals, geography capitals, and mixed topics
 - ⚡ **Easy or Medium difficulty** — calibrate the friction to suit your focus needs
 - ⏱️ **Timed unlock windows** — configure how long an app stays open after a correct answer
 - 📊 **Progress tracking** — see how many problems you've solved over time

@@ -71,6 +71,16 @@ class ZenMonitorService : Service() {
         allowReopenWithinWindow = intent.getBooleanExtra("allow_reopen_within_window", false)
         fullLock = intent.getBooleanExtra(EXTRA_FULL_LOCK, false)
         rewardMinutes = intent.getIntExtra("reward_minutes", 10)
+        // Resolve friendly app labels so the intervention screen shows "Instagram"
+        // rather than "com.instagram.android".
+        val pm = packageManager
+        appLabelByPackage.clear()
+        for (pkg in blockedPackages) {
+          appLabelByPackage[pkg] = try {
+            @Suppress("DEPRECATION")
+            pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString()
+          } catch (_: Exception) { pkg }
+        }
         startForeground(NOTIFICATION_ID, createNotification())
         running = true
         handler.post(pollRunnable)
@@ -301,7 +311,7 @@ class ZenMonitorService : Service() {
       putExtra("unlock_for_package", pkg)
       putExtra("unlock_app_label", appLabelByPackage[pkg] ?: pkg)
       putExtra("remaining_seconds", remaining)
-      putExtra("reward_minutes", 2)
+      putExtra("reward_minutes", rewardMinutes)
       putExtra("times_up", timesUp)
     }
     startActivity(i)
@@ -346,6 +356,9 @@ class ZenMonitorService : Service() {
     hideFullLockOverlay()
     hideGraceTimerOverlay()
     hideOverlay()
+    // Remove the foreground notification explicitly. On Android 12+ (API 31+)
+    // calling stopService() does not always auto-remove it without this call.
+    try { stopForeground(STOP_FOREGROUND_REMOVE) } catch (_: Exception) {}
     super.onDestroy()
   }
 

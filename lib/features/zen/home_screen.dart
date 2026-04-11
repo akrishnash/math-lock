@@ -55,9 +55,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
-    _orbAnim = Tween<double>(begin: 0.82, end: 1.0).animate(
-      CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut),
-    );
+    _orbAnim = Tween<double>(
+      begin: 0.82,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _orbCtrl, curve: Curves.easeInOut));
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await Future<void>.delayed(const Duration(milliseconds: 350));
       if (!mounted) return;
@@ -139,21 +140,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       final remainingSeconds = pending['remainingSeconds'] is int
           ? pending['remainingSeconds'] as int
           : (pending['remainingSeconds'] is num
-              ? (pending['remainingSeconds'] as num).toInt()
-              : 0);
+                ? (pending['remainingSeconds'] as num).toInt()
+                : 0);
       final rewardMinutes = pending['rewardMinutes'] is int
           ? pending['rewardMinutes'] as int
           : (pending['rewardMinutes'] is num
-              ? (pending['rewardMinutes'] as num).toInt()
-              : ref.read(settingsProvider).rewardDurationMinutes);
+                ? (pending['rewardMinutes'] as num).toInt()
+                : ref.read(settingsProvider).rewardDurationMinutes);
       final timesUp = pending['timesUp'] == true;
-      context.go('/intervention', extra: InterventionScreenArgs(
-        packageName: packageName,
-        appLabel: appLabel,
-        remainingSeconds: remainingSeconds,
-        rewardMinutes: rewardMinutes,
-        timesUp: timesUp,
-      ));
+      context.go(
+        '/intervention',
+        extra: InterventionScreenArgs(
+          packageName: packageName,
+          appLabel: appLabel,
+          remainingSeconds: remainingSeconds,
+          rewardMinutes: rewardMinutes,
+          timesUp: timesUp,
+        ),
+      );
       return;
     }
     final user = ref.read(authStateProvider).valueOrNull;
@@ -192,25 +196,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     // Build friendly list of what's still needed
     final items = <_PermissionItem>[];
     if (!usage) {
-      items.add(const _PermissionItem(
-        icon: Icons.bar_chart_rounded,
-        title: 'App usage monitoring',
-        description: 'Lets the app know which app you opened so it can show the math challenge.',
-      ));
+      items.add(
+        const _PermissionItem(
+          icon: Icons.bar_chart_rounded,
+          title: 'App usage monitoring',
+          description:
+              'Lets the app know which app you opened so it can show the math challenge.',
+        ),
+      );
     }
     if (!overlay) {
-      items.add(const _PermissionItem(
-        icon: Icons.layers_rounded,
-        title: 'Show challenge screen',
-        description: 'Allows the math problem to appear on top of other apps when you try to open one.',
-      ));
+      items.add(
+        const _PermissionItem(
+          icon: Icons.layers_rounded,
+          title: 'Show challenge screen',
+          description:
+              'Allows the math problem to appear on top of other apps when you try to open one.',
+        ),
+      );
     }
     if (!notification) {
-      items.add(const _PermissionItem(
-        icon: Icons.notifications_rounded,
-        title: 'Session notifications',
-        description: 'Sends a notification when your focus session starts or ends.',
-      ));
+      items.add(
+        const _PermissionItem(
+          icon: Icons.notifications_rounded,
+          title: 'Session notifications',
+          description:
+              'Sends a notification when your focus session starts or ends.',
+        ),
+      );
     }
 
     final confirmed = await showModalBottomSheet<bool>(
@@ -292,7 +305,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               await ref
                   .read(settingsProvider.notifier)
                   .setSessionDurationMinutes(sessionMinutes);
-              await ref.read(zenSessionProvider.notifier).startZen(
+              await ref
+                  .read(zenSessionProvider.notifier)
+                  .startZen(
                     sessionDurationMinutes: sessionMinutes,
                     blockedPackageNames: packages,
                   );
@@ -365,8 +380,10 @@ class _ActiveSessionScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final endMillis = zen.sessionEndMillis ?? DateTime.now().millisecondsSinceEpoch;
-    final startMillis = endMillis - (settings.sessionDurationMinutes * 60 * 1000);
+    final endMillis =
+        zen.sessionEndMillis ?? DateTime.now().millisecondsSinceEpoch;
+    final startMillis =
+        endMillis - (settings.sessionDurationMinutes * 60 * 1000);
     final appCount = zen.blockedPackages.length;
 
     return Scaffold(
@@ -389,8 +406,11 @@ class _ActiveSessionScreen extends StatelessWidget {
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                          color: _white70, size: 30),
+                      icon: const Icon(
+                        Icons.keyboard_arrow_down_rounded,
+                        color: _white70,
+                        size: 30,
+                      ),
                       onPressed: () {},
                     ),
                     const Spacer(),
@@ -449,10 +469,14 @@ class _ActiveSessionScreen extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(_fmt(startMillis),
-                            style: GoogleFonts.inter(color: _muted, fontSize: 11)),
-                        Text(_fmt(endMillis),
-                            style: GoogleFonts.inter(color: _muted, fontSize: 11)),
+                        Text(
+                          _fmt(startMillis),
+                          style: GoogleFonts.inter(color: _muted, fontSize: 11),
+                        ),
+                        Text(
+                          _fmt(endMillis),
+                          style: GoogleFonts.inter(color: _muted, fontSize: 11),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 24),
@@ -472,7 +496,8 @@ class _ActiveSessionScreen extends StatelessWidget {
                           child: _InfoChip(
                             icon: Icons.psychology_outlined,
                             label: 'DIFFICULTY',
-                            value: settings.problemDifficulty ==
+                            value:
+                                settings.problemDifficulty ==
                                     ProblemDifficulty.easy
                                 ? 'Easy'
                                 : 'Medium',
@@ -513,8 +538,11 @@ class _ActiveSessionScreen extends StatelessWidget {
 }
 
 class _InfoChip extends StatelessWidget {
-  const _InfoChip(
-      {required this.icon, required this.label, required this.value});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
   final IconData icon;
   final String label;
   final String value;
@@ -535,15 +563,23 @@ class _InfoChip extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label,
-                    style: GoogleFonts.inter(
-                        color: _muted, fontSize: 9, letterSpacing: 0.8)),
+                Text(
+                  label,
+                  style: GoogleFonts.inter(
+                    color: _muted,
+                    fontSize: 9,
+                    letterSpacing: 0.8,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text(value,
-                    style: GoogleFonts.inter(
-                        color: _white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500)),
+                Text(
+                  value,
+                  style: GoogleFonts.inter(
+                    color: _white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
               ],
             ),
           ),
@@ -573,22 +609,38 @@ class _TodayTab extends ConsumerWidget {
               Text(
                 'Earn Your Screen',
                 style: GoogleFonts.inter(
-                    color: _white, fontSize: 18, fontWeight: FontWeight.w700),
+                  color: _white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(width: 6),
-              Text('Today',
-                  style: GoogleFonts.inter(color: _muted, fontSize: 14)),
-              const Icon(Icons.keyboard_arrow_down_rounded,
-                  color: _muted, size: 18),
+              Text(
+                'Today',
+                style: GoogleFonts.inter(color: _muted, fontSize: 14),
+              ),
+              const Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: _muted,
+                size: 18,
+              ),
             ],
           ),
           actions: [
             IconButton(
-              icon: const Icon(Icons.ios_share_outlined, color: _muted, size: 22),
+              icon: const Icon(
+                Icons.ios_share_outlined,
+                color: _muted,
+                size: 22,
+              ),
               onPressed: () {},
             ),
             IconButton(
-              icon: const Icon(Icons.settings_outlined, color: _muted, size: 22),
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: _muted,
+                size: 22,
+              ),
               onPressed: () => context.push('/settings'),
             ),
           ],
@@ -602,7 +654,7 @@ class _TodayTab extends ConsumerWidget {
               const SizedBox(height: 8),
               // Metric — real data from statsProvider
               Text(
-                '${stats.thisWeekCount}',
+                '${stats.todayCount}',
                 style: GoogleFonts.inter(
                   color: _gradA,
                   fontSize: 28,
@@ -612,9 +664,12 @@ class _TodayTab extends ConsumerWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'PROBLEMS SOLVED THIS WEEK',
+                'PROBLEMS SOLVED TODAY',
                 style: GoogleFonts.inter(
-                    color: _muted, fontSize: 11, letterSpacing: 1.5),
+                  color: _muted,
+                  fontSize: 11,
+                  letterSpacing: 1.5,
+                ),
               ),
               const SizedBox(height: 24),
               // Stats row
@@ -629,18 +684,25 @@ class _TodayTab extends ConsumerWidget {
                   child: Row(
                     children: [
                       Expanded(
-                          child: _StatItem(
-                              label: 'THIS\nWEEK',
-                              value: '${stats.thisWeekCount}')),
+                        child: _StatItem(
+                          label: 'TODAY',
+                          value: '${stats.todayCount}',
+                        ),
+                      ),
                       const _StatDivider(),
                       Expanded(
-                          child: _StatItem(
-                              label: 'ALL\nTIME',
-                              value: '${stats.totalUnlockViaProblem}')),
+                        child: _StatItem(
+                          label: 'THIS\nWEEK',
+                          value: '${stats.thisWeekCount}',
+                        ),
+                      ),
                       const _StatDivider(),
-                      const Expanded(
-                          child: _StatItem(label: 'DAILY\nAVG',
-                              value: '—')),
+                      Expanded(
+                        child: _StatItem(
+                          label: 'STREAK',
+                          value: '${stats.currentStreakDays}d',
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -683,19 +745,30 @@ class _TipCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline_rounded,
-                  color: _gradA, size: 16),
+              const Icon(
+                Icons.lightbulb_outline_rounded,
+                color: _gradA,
+                size: 16,
+              ),
               const SizedBox(width: 8),
-              Text('DID YOU KNOW',
-                  style: GoogleFonts.inter(
-                      color: _muted, fontSize: 10, letterSpacing: 1)),
+              Text(
+                'DID YOU KNOW',
+                style: GoogleFonts.inter(
+                  color: _muted,
+                  fontSize: 10,
+                  letterSpacing: 1,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
           Text(
-            'Solving a math problem before opening an app creates a 3–5 second pause that breaks the automatic habit loop.',
+            'A short challenge before opening an app creates a pause that breaks the automatic habit loop.',
             style: GoogleFonts.inter(
-                color: _white70, fontSize: 14, height: 1.55),
+              color: _white70,
+              fontSize: 14,
+              height: 1.55,
+            ),
           ),
         ],
       ),
@@ -714,7 +787,7 @@ class _BlocksTab extends ConsumerStatefulWidget {
   final ZenSessionState zen;
   final SettingsState settings;
   final Future<void> Function(int sessionMinutes, List<String> packages)
-      onStartZen;
+  onStartZen;
 
   @override
   ConsumerState<_BlocksTab> createState() => _BlocksTabState();
@@ -737,8 +810,7 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
     final totalMinutes = settings.sessionDurationMinutes;
     final hours = totalMinutes ~/ 60;
     final minutes = totalMinutes % 60;
-    final durationLabel =
-        hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
+    final durationLabel = hours > 0 ? '${hours}h ${minutes}m' : '${minutes}m';
 
     return CustomScrollView(
       slivers: [
@@ -748,7 +820,10 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
           title: Text(
             'Blocks',
             style: GoogleFonts.inter(
-                color: _white, fontSize: 18, fontWeight: FontWeight.w700),
+              color: _white,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+            ),
           ),
         ),
         SliverToBoxAdapter(
@@ -768,7 +843,9 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
                       _SessionRow(
                         icon: Icons.timer_outlined,
                         label: 'Duration',
-                        value: totalMinutes == 0 ? 'Set duration' : durationLabel,
+                        value: totalMinutes == 0
+                            ? 'Set duration'
+                            : durationLabel,
                         onTap: () => _showDurationSheet(context),
                       ),
                       _RowDivider(),
@@ -783,7 +860,9 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
                                 width: 9,
                                 height: 9,
                                 decoration: const BoxDecoration(
-                                    color: _red, shape: BoxShape.circle),
+                                  color: _red,
+                                  shape: BoxShape.circle,
+                                ),
                               )
                             : null,
                         onTap: () => context.push('/app-picker'),
@@ -792,8 +871,8 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
                       _SessionRow(
                         icon: Icons.psychology_outlined,
                         label: 'Difficulty',
-                        value: settings.problemDifficulty ==
-                                ProblemDifficulty.easy
+                        value:
+                            settings.problemDifficulty == ProblemDifficulty.easy
                             ? 'Easy'
                             : 'Medium',
                         onTap: () => _showDifficultySheet(context),
@@ -829,7 +908,9 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
                       ? () async {
                           setState(() => _starting = true);
                           await widget.onStartZen(
-                              totalMinutes, zen.blockedPackages);
+                            totalMinutes,
+                            zen.blockedPackages,
+                          );
                           if (mounted) setState(() => _starting = false);
                         }
                       : null,
@@ -839,7 +920,10 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
                   Text(
                     'BLOCKED APPS',
                     style: GoogleFonts.inter(
-                        color: _muted, fontSize: 10, letterSpacing: 1.2),
+                      color: _muted,
+                      fontSize: 10,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   _AppsPreview(packages: zen.blockedPackages),
@@ -855,8 +939,9 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
 
   void _toggleLockMode() {
     final current = widget.settings.lockMode;
-    ref.read(settingsProvider.notifier).setLockMode(
-        current == LockMode.full ? LockMode.apps : LockMode.full);
+    ref
+        .read(settingsProvider.notifier)
+        .setLockMode(current == LockMode.full ? LockMode.apps : LockMode.full);
   }
 
   void _showDurationSheet(BuildContext context) {
@@ -872,7 +957,8 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
       context: context,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Padding(
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 0),
@@ -880,20 +966,27 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: _muted,
-                      borderRadius: BorderRadius.circular(99))),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: _muted,
+                  borderRadius: BorderRadius.circular(99),
+                ),
+              ),
               const SizedBox(height: 20),
-              Text('Duration',
-                  style: GoogleFonts.inter(
-                      color: _white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600)),
+              Text(
+                'Duration',
+                style: GoogleFonts.inter(
+                  color: _white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text('Select how long this session should last.',
-                  style: GoogleFonts.inter(color: _muted, fontSize: 13)),
+              Text(
+                'Select how long this session should last.',
+                style: GoogleFonts.inter(color: _muted, fontSize: 13),
+              ),
               const SizedBox(height: 16),
               SizedBox(
                 height: 180,
@@ -961,21 +1054,30 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
       context: context,
       backgroundColor: _card,
       shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => Padding(
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 36),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: _muted, borderRadius: BorderRadius.circular(99))),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: _muted,
+                borderRadius: BorderRadius.circular(99),
+              ),
+            ),
             const SizedBox(height: 20),
-            Text('Difficulty',
-                style: GoogleFonts.inter(
-                    color: _white, fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(
+              'Difficulty',
+              style: GoogleFonts.inter(
+                color: _white,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
             const SizedBox(height: 6),
             Text(
               'Harder problems = more friction = less mindless opening.',
@@ -986,8 +1088,8 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
             _DifficultyOption(
               title: 'Easy',
               subtitle: 'Quick unlocks, light friction',
-              selected: widget.settings.problemDifficulty ==
-                  ProblemDifficulty.easy,
+              selected:
+                  widget.settings.problemDifficulty == ProblemDifficulty.easy,
               onTap: () {
                 ref
                     .read(settingsProvider.notifier)
@@ -999,8 +1101,8 @@ class _BlocksTabState extends ConsumerState<_BlocksTab> {
             _DifficultyOption(
               title: 'Medium',
               subtitle: 'Longer problems, real pause before opening',
-              selected: widget.settings.problemDifficulty ==
-                  ProblemDifficulty.medium,
+              selected:
+                  widget.settings.problemDifficulty == ProblemDifficulty.medium,
               onTap: () {
                 ref
                     .read(settingsProvider.notifier)
@@ -1038,7 +1140,9 @@ class _DifficultyOption extends StatelessWidget {
           color: selected ? _green.withValues(alpha: 0.12) : _cardAlt,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-              color: selected ? _green : Colors.transparent, width: 1.5),
+            color: selected ? _green : Colors.transparent,
+            width: 1.5,
+          ),
         ),
         child: Row(
           children: [
@@ -1046,27 +1150,36 @@ class _DifficultyOption extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title,
-                      style: GoogleFonts.inter(
-                          color: _white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600)),
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      color: _white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                   const SizedBox(height: 2),
-                  Text(subtitle,
-                      style: GoogleFonts.inter(color: _muted, fontSize: 13)),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(color: _muted, fontSize: 13),
+                  ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             selected
-                ? const Icon(Icons.check_circle_rounded,
-                    color: _green, size: 22)
+                ? const Icon(
+                    Icons.check_circle_rounded,
+                    color: _green,
+                    size: 22,
+                  )
                 : Container(
                     width: 22,
                     height: 22,
                     decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: _muted, width: 1.5)),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: _muted, width: 1.5),
+                    ),
                   ),
           ],
         ),
@@ -1158,8 +1271,10 @@ class _DrumPickerState extends State<_DrumPicker> {
           ],
         ),
         const SizedBox(height: 6),
-        Text(widget.label,
-            style: GoogleFonts.inter(color: _muted, fontSize: 12)),
+        Text(
+          widget.label,
+          style: GoogleFonts.inter(color: _muted, fontSize: 12),
+        ),
       ],
     );
   }
@@ -1192,14 +1307,15 @@ class _SessionRow extends StatelessWidget {
             Icon(icon, color: _muted, size: 20),
             const SizedBox(width: 14),
             Expanded(
-                child: Text(label,
-                    style: GoogleFonts.inter(color: _white, fontSize: 15))),
+              child: Text(
+                label,
+                style: GoogleFonts.inter(color: _white, fontSize: 15),
+              ),
+            ),
             if (trailing != null) ...[trailing!, const SizedBox(width: 6)],
-            Text(value,
-                style: GoogleFonts.inter(color: _muted, fontSize: 15)),
+            Text(value, style: GoogleFonts.inter(color: _muted, fontSize: 15)),
             const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded,
-                color: _muted, size: 18),
+            const Icon(Icons.chevron_right_rounded, color: _muted, size: 18),
           ],
         ),
       ),
@@ -1235,31 +1351,39 @@ class _AppsPreview extends StatelessWidget {
             final app = byPkg[pkg];
             return Container(
               margin: const EdgeInsets.only(bottom: 8),
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
-                  color: _card, borderRadius: BorderRadius.circular(12)),
+                color: _card,
+                borderRadius: BorderRadius.circular(12),
+              ),
               child: Row(
                 children: [
                   if (app?.iconBytes != null)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: Image.memory(app!.iconBytes!,
-                          width: 36, height: 36, fit: BoxFit.contain),
+                      child: Image.memory(
+                        app!.iconBytes!,
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.contain,
+                      ),
                     )
                   else
                     Container(
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                          color: _cardAlt,
-                          borderRadius: BorderRadius.circular(8)),
+                        color: _cardAlt,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
                       child: const Icon(Icons.apps, color: _muted, size: 20),
                     ),
                   const SizedBox(width: 12),
                   Expanded(
-                    child: Text(app?.label ?? pkg,
-                        style: GoogleFonts.inter(color: _white, fontSize: 14)),
+                    child: Text(
+                      app?.label ?? pkg,
+                      style: GoogleFonts.inter(color: _white, fontSize: 14),
+                    ),
                   ),
                   const Icon(Icons.block_rounded, color: _red, size: 18),
                 ],
@@ -1346,16 +1470,18 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(selected ? activeIcon : icon,
-                color: selected ? _white : _muted, size: 26),
+            Icon(
+              selected ? activeIcon : icon,
+              color: selected ? _white : _muted,
+              size: 26,
+            ),
             const SizedBox(height: 3),
             Text(
               label,
               style: GoogleFonts.inter(
                 color: selected ? _white : _muted,
                 fontSize: 10,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.normal,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
               ),
             ),
           ],
@@ -1428,8 +1554,11 @@ class _GlowOrb extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(Icons.lock_outline_rounded,
-                  color: Colors.white, size: 34),
+              child: const Icon(
+                Icons.lock_outline_rounded,
+                color: Colors.white,
+                size: 34,
+              ),
             ),
           ],
         ),
@@ -1497,7 +1626,10 @@ class _OutlineButton extends StatelessWidget {
           child: Text(
             label,
             style: GoogleFonts.inter(
-                color: _white, fontSize: 16, fontWeight: FontWeight.w500),
+              color: _white,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
       ),
@@ -1519,13 +1651,19 @@ class _StatItem extends StatelessWidget {
         Text(
           value,
           style: GoogleFonts.inter(
-              color: _white, fontSize: 24, fontWeight: FontWeight.w700),
+            color: _white,
+            fontSize: 24,
+            fontWeight: FontWeight.w700,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           label,
           style: GoogleFonts.inter(
-              color: _muted, fontSize: 9, letterSpacing: 0.5),
+            color: _muted,
+            fontSize: 9,
+            letterSpacing: 0.5,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -1601,57 +1739,81 @@ class _PermissionSheet extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2C2C2E),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(item.icon, color: _gradA, size: 22),
+          ...items.map(
+            (item) => Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2C2C2E),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            item.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
+                    child: Icon(item.icon, color: _gradA, size: 22),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: GoogleFonts.inter(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
                           ),
-                          const SizedBox(height: 3),
-                          Text(
-                            item.description,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: const Color(0xFF8E8E93),
-                              height: 1.4,
-                            ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          item.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: const Color(0xFF8E8E93),
+                            height: 1.4,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFF2C2C2E),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.privacy_tip_outlined, color: _gradA, size: 20),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Private by default: your blocked app list and solve history stay on this device unless you sign in.',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: const Color(0xFFB8B8BC),
+                      height: 1.4,
+                    ),
+                  ),
                 ),
-              )),
+              ],
+            ),
+          ),
           const SizedBox(height: 8),
           GestureDetector(
             onTap: () => Navigator.of(context).pop(true),
             child: Container(
               height: 56,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [_gradA, _gradB],
-                ),
+                gradient: const LinearGradient(colors: [_gradA, _gradB]),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Center(

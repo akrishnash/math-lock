@@ -64,7 +64,7 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen>
     _args = widget.args ?? const ProblemScreenArgs(
       packageName: '',
       appLabel: 'App',
-      rewardMinutes: 2,
+      rewardMinutes: 10,
     );
     app_log.log('Challenge', 'initState: appLabel=${_args.appLabel} rewardMinutes=${_args.rewardMinutes}');
 

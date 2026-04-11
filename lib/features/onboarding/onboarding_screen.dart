@@ -74,7 +74,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     _TopicOption(id: 'algebra', icon: Icons.functions_outlined, label: 'Algebra', subtitle: 'Variables & expressions'),
     _TopicOption(id: 'integration', icon: Icons.area_chart_outlined, label: 'Calculus', subtitle: 'Integral practice'),
     _TopicOption(id: 'geography', icon: Icons.public_outlined, label: 'Geography', subtitle: 'World capitals'),
-    _TopicOption(id: 'logic', icon: Icons.psychology_outlined, label: 'Logic', subtitle: 'Patterns & sequences'),
   ];
 
   @override

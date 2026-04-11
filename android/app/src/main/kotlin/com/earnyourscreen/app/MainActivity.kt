@@ -155,7 +155,7 @@ class MainActivity : FlutterActivity() {
       "packageName" to pkg,
       "appLabel" to (intent.getStringExtra("unlock_app_label") ?: pkg),
       "remainingSeconds" to intent.getIntExtra("remaining_seconds", 0),
-      "rewardMinutes" to intent.getIntExtra("reward_minutes", 2),
+      "rewardMinutes" to intent.getIntExtra("reward_minutes", 10),
       "timesUp" to intent.getBooleanExtra("times_up", false)
     )
   }

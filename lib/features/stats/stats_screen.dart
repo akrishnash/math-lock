@@ -35,7 +35,11 @@ class StatsScreen extends ConsumerWidget {
             pinned: true,
             elevation: 0,
             leading: IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _white, size: 20),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: _white,
+                size: 20,
+              ),
               onPressed: () => context.pop(),
             ),
             title: Text(
@@ -77,7 +81,11 @@ class StatsScreen extends ConsumerWidget {
                             ),
                             borderRadius: BorderRadius.circular(10),
                           ),
-                          child: const Icon(Icons.psychology_rounded, color: _black, size: 20),
+                          child: const Icon(
+                            Icons.psychology_rounded,
+                            color: _black,
+                            size: 20,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Text(
@@ -107,10 +115,7 @@ class StatsScreen extends ConsumerWidget {
                     const SizedBox(height: 6),
                     Text(
                       'problems solved to unlock apps',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: _muted,
-                      ),
+                      style: GoogleFonts.inter(fontSize: 14, color: _muted),
                     ),
                   ],
                 ),
@@ -123,7 +128,7 @@ class StatsScreen extends ConsumerWidget {
             child: Padding(
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Text(
-                'THIS WEEK',
+                'RECENT PROGRESS',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
@@ -147,23 +152,43 @@ class StatsScreen extends ConsumerWidget {
                   children: [
                     Expanded(
                       child: _StatTile(
-                        label: 'This Week',
-                        value: '${stats.thisWeekCount}',
-                        icon: Icons.calendar_today_rounded,
+                        label: 'Today',
+                        value: '${stats.todayCount}',
+                        icon: Icons.today_rounded,
                         color: _green,
                       ),
                     ),
                     Container(width: 1, height: 60, color: _separator),
                     Expanded(
                       child: _StatTile(
-                        label: 'Daily Avg',
-                        value: (stats.thisWeekCount / 7).toStringAsFixed(1),
-                        icon: Icons.trending_up_rounded,
+                        label: 'This Week',
+                        value: '${stats.thisWeekCount}',
+                        icon: Icons.calendar_today_rounded,
                         color: _blue,
+                      ),
+                    ),
+                    Container(width: 1, height: 60, color: _separator),
+                    Expanded(
+                      child: _StatTile(
+                        label: 'Streak',
+                        value: '${stats.currentStreakDays}d',
+                        icon: Icons.local_fire_department_rounded,
+                        color: const Color(0xFFFF6B35),
                       ),
                     ),
                   ],
                 ),
+              ),
+            ),
+          ),
+
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 10, 20, 0),
+              child: Text(
+                'Daily average: ${stats.dailyAverageThisWeek.toStringAsFixed(1)} solves over the last 7 days',
+                style: GoogleFonts.inter(fontSize: 13, color: _muted),
+                textAlign: TextAlign.center,
               ),
             ),
           ),
@@ -199,6 +224,14 @@ class StatsScreen extends ConsumerWidget {
                   const SizedBox(height: 10),
                   _AchievementRow(
                     icon: Icons.local_fire_department_rounded,
+                    color: const Color(0xFFFF6B35),
+                    title: '3-day streak',
+                    subtitle: 'Solved at least one challenge for 3 days',
+                    unlocked: stats.currentStreakDays >= 3,
+                  ),
+                  const SizedBox(height: 10),
+                  _AchievementRow(
+                    icon: Icons.bolt_rounded,
                     color: const Color(0xFFFF6B35),
                     title: '10 solves',
                     subtitle: 'Solved 10 problems total',
@@ -262,10 +295,7 @@ class _StatTile extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: GoogleFonts.inter(fontSize: 12, color: _muted),
-        ),
+        Text(label, style: GoogleFonts.inter(fontSize: 12, color: _muted)),
       ],
     );
   }

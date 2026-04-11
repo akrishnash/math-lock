@@ -91,7 +91,7 @@ GoRouter createRouter(WidgetRef ref, {String initialLocation = '/'}) {
             remainingSeconds: (remaining is int)
                 ? remaining
                 : (remaining is num ? remaining.toInt() : 0),
-            rewardMinutes: (reward is int) ? reward : (reward is num ? reward.toInt() : 2),
+            rewardMinutes: (reward is int) ? reward : (reward is num ? reward.toInt() : 10),
             timesUp: timesUp,
           );
           return InterventionScreen(args: args);

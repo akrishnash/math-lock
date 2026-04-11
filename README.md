@@ -1,4 +1,4 @@
-# Math Lock — Earn Your Screen Time
+# Earn Your Screen
 
 A Flutter app for Android that puts a math (or geography) problem between you and your most distracting apps. Solve the problem to unlock the app for a configurable window. No solve, no access.
 
@@ -16,11 +16,10 @@ A Flutter app for Android that puts a math (or geography) problem between you an
 ## Features
 
 - Block specific apps or the entire phone
-- Challenge topics: Mixed · Arithmetic · Algebra · Calculus · Geography · Logic
+- Challenge topics: Mixed · Arithmetic · Algebra · Calculus · Geography
 - Easy / Medium difficulty (harder = longer unlock friction)
-- Configurable reward window (default 2 min) and session duration
-- Optional Google sign-in to sync stats across devices
-- Works without an account (local-only mode)
+- Configurable reward window (default 10 min) and session duration
+- Google sign-in to sync stats across devices
 
 ---
 
