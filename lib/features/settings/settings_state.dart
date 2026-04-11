@@ -18,7 +18,7 @@ typedef AccentColorKey = String; // 'pink' | 'cyan' | 'purple' | 'yellow' | 'gre
 class SettingsState {
   const SettingsState({
     this.sessionDurationMinutes = 120,
-    this.rewardDurationMinutes = 2,
+    this.rewardDurationMinutes = 10,
     this.allowReopenWithinWindow = false,
     this.lockMode = LockMode.apps,
     this.problemType = ProblemType.linear,

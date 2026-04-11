@@ -9,6 +9,7 @@ import '../../core/platform/zen_platform.dart';
 import '../../core/utils/app_log.dart' as app_log;
 import '../auth/auth_state.dart';
 import '../settings/settings_state.dart';
+import '../stats/stats_state.dart';
 import 'intervention_screen.dart';
 import 'zen_state.dart';
 
@@ -302,6 +303,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   sessionEndMillis: sessionEnd,
                   allowReopenWithinWindow: settings.allowReopenWithinWindow,
                   fullLock: settings.lockMode == LockMode.full,
+                  rewardMinutes: settings.rewardDurationMinutes,
                 );
               }
               if (mounted) setState(() {});
@@ -553,13 +555,14 @@ class _InfoChip extends StatelessWidget {
 
 // ── Today Tab ──────────────────────────────────────────────────────────────────
 
-class _TodayTab extends StatelessWidget {
+class _TodayTab extends ConsumerWidget {
   const _TodayTab({required this.orbAnim, required this.onGoToBlocks});
   final Animation<double> orbAnim;
   final VoidCallback onGoToBlocks;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(statsProvider);
     return CustomScrollView(
       slivers: [
         SliverAppBar(
@@ -568,7 +571,7 @@ class _TodayTab extends StatelessWidget {
           title: Row(
             children: [
               Text(
-                'Math Lock',
+                'Earn Your Screen',
                 style: GoogleFonts.inter(
                     color: _white, fontSize: 18, fontWeight: FontWeight.w700),
               ),
@@ -597,9 +600,9 @@ class _TodayTab extends StatelessWidget {
               // Glowing orb
               _GlowOrb(animation: orbAnim),
               const SizedBox(height: 8),
-              // Metric
+              // Metric — real data from statsProvider
               Text(
-                '0 sessions',
+                '${stats.thisWeekCount}',
                 style: GoogleFonts.inter(
                   color: _gradA,
                   fontSize: 28,
@@ -609,7 +612,7 @@ class _TodayTab extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'FOCUS TODAY',
+                'PROBLEMS SOLVED THIS WEEK',
                 style: GoogleFonts.inter(
                     color: _muted, fontSize: 11, letterSpacing: 1.5),
               ),
@@ -623,17 +626,21 @@ class _TodayTab extends StatelessWidget {
                     color: _card,
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Expanded(
-                          child: _StatItem(label: 'SESSIONS\nTODAY', value: '0')),
-                      _StatDivider(),
+                          child: _StatItem(
+                              label: 'THIS\nWEEK',
+                              value: '${stats.thisWeekCount}')),
+                      const _StatDivider(),
                       Expanded(
-                          child:
-                              _StatItem(label: 'PROBLEMS\nSOLVED', value: '0')),
-                      _StatDivider(),
-                      Expanded(
-                          child: _StatItem(label: 'DAY\nSTREAK', value: '0')),
+                          child: _StatItem(
+                              label: 'ALL\nTIME',
+                              value: '${stats.totalUnlockViaProblem}')),
+                      const _StatDivider(),
+                      const Expanded(
+                          child: _StatItem(label: 'DAILY\nAVG',
+                              value: '—')),
                     ],
                   ),
                 ),

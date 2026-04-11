@@ -17,13 +17,11 @@ import 'topic_registry.dart';
 // ── design tokens ─────────────────────────────────────────────────────────────
 const _black = Color(0xFF000000);
 const _card = Color(0xFF1C1C1E);
-const _cardAlt = Color(0xFF2C2C2E);
 const _red = Color(0xFFFF3B30);
 const _gradA = Color(0xFFB3FF6E);
 const _gradB = Color(0xFF00C9A7);
 const _muted = Color(0xFF8E8E93);
 const _white = Color(0xFFFFFFFF);
-const _white60 = Color(0x99FFFFFF);
 
 const String _fullLockPackage = '_full';
 
@@ -117,8 +115,6 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen>
       setState(() => _input += key);
     }
   }
-
-  int get _penaltyMinutes => ref.read(settingsProvider).penaltyMinutes;
 
   Future<void> _showSuccessAndGoHome() async {
     final mins = _args.rewardMinutes;
@@ -299,7 +295,7 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen>
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          '+$_penaltyMinutes min penalty',
+                          'Wrong answer — try again',
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: _red,

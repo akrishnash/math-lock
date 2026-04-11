@@ -38,6 +38,7 @@ class ZenMonitorService : Service() {
   private var currentBlockedPackage: String? = null
   private var allowReopenWithinWindow: Boolean = false
   private var appLabelByPackage: MutableMap<String, String> = mutableMapOf()
+  private var rewardMinutes: Int = 10
 
   private val pollRunnable = object : Runnable {
     override fun run() {
@@ -69,6 +70,7 @@ class ZenMonitorService : Service() {
         sessionEndMillis = intent.getLongExtra(EXTRA_SESSION_END_MILLIS, 0L)
         allowReopenWithinWindow = intent.getBooleanExtra("allow_reopen_within_window", false)
         fullLock = intent.getBooleanExtra(EXTRA_FULL_LOCK, false)
+        rewardMinutes = intent.getIntExtra("reward_minutes", 10)
         startForeground(NOTIFICATION_ID, createNotification())
         running = true
         handler.post(pollRunnable)
@@ -145,7 +147,7 @@ class ZenMonitorService : Service() {
         putExtra("unlock_for_package", FULL_LOCK_PACKAGE)
         putExtra("unlock_app_label", "Phone")
         putExtra("remaining_seconds", remaining)
-        putExtra("reward_minutes", 2)
+        putExtra("reward_minutes", rewardMinutes)
         putExtra("times_up", false)
       }
       startActivity(i)
@@ -366,7 +368,8 @@ class ZenMonitorService : Service() {
       blockedPackages: List<String>,
       sessionEndMillis: Long,
       allowReopenWithinWindow: Boolean,
-      fullLock: Boolean = false
+      fullLock: Boolean = false,
+      rewardMinutes: Int = 10
     ) {
       val intent = Intent(context, ZenMonitorService::class.java).apply {
         action = ACTION_START
@@ -374,6 +377,7 @@ class ZenMonitorService : Service() {
         putExtra(EXTRA_SESSION_END_MILLIS, sessionEndMillis)
         putExtra("allow_reopen_within_window", allowReopenWithinWindow)
         putExtra(EXTRA_FULL_LOCK, fullLock)
+        putExtra("reward_minutes", rewardMinutes)
       }
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         context.startForegroundService(intent)

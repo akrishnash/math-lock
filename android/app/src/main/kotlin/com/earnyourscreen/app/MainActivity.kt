@@ -71,13 +71,15 @@ class MainActivity : FlutterActivity() {
           val allowReopenWithinWindow =
             call.argument<Boolean>("allowReopenWithinWindow") ?: false
           val fullLock = call.argument<Boolean>("fullLock") ?: false
+          val rewardMinutes = (call.argument<Number>("rewardMinutes"))?.toInt() ?: 10
           ZenNotificationListenerService.setBlockedPackages(this, blocked.toSet())
           ZenMonitorService.start(
             this,
             blocked,
             sessionEndMillis,
             allowReopenWithinWindow,
-            fullLock
+            fullLock,
+            rewardMinutes
           )
           result.success(null)
         }

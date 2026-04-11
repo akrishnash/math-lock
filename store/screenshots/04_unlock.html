@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EarnYourScreen – Unlock Success</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  .phone-frame {
+    width: 1000px;
+    height: 1840px;
+    background: #F1EFE8;
+    border-radius: 80px;
+    border: 8px solid #2a2a3e;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 80px rgba(0,0,0,0.6);
+  }
+  .caption-banner {
+    width: 100%;
+    background: #1D9E75;
+    padding: 32px 48px;
+    text-align: center;
+    color: #fff;
+    font-size: 42px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .status-bar {
+    background: #F1EFE8;
+    padding: 20px 48px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .status-time { color: #333; font-size: 30px; font-weight: 600; }
+  .status-icons { color: #333; font-size: 26px; letter-spacing: 6px; }
+  .confetti-area {
+    background: linear-gradient(180deg, #e8f8f2 0%, #F1EFE8 60%);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 64px;
+    position: relative;
+    overflow: hidden;
+  }
+  .confetti-dot {
+    position: absolute;
+    border-radius: 50%;
+    opacity: 0.6;
+  }
+  .success-ring {
+    width: 280px;
+    height: 280px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #1D9E75, #17845f);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 48px;
+    box-shadow:
+      0 0 0 20px rgba(29,158,117,0.12),
+      0 0 0 40px rgba(29,158,117,0.06),
+      0 24px 64px rgba(29,158,117,0.4);
+    position: relative;
+    flex-shrink: 0;
+  }
+  .success-icon { font-size: 120px; }
+  .star-burst {
+    position: absolute;
+    font-size: 40px;
+  }
+  .earned-heading {
+    font-size: 72px;
+    font-weight: 900;
+    color: #1a1a2e;
+    text-align: center;
+    margin-bottom: 16px;
+    letter-spacing: -1px;
+  }
+  .earned-sub {
+    font-size: 34px;
+    color: #666;
+    text-align: center;
+    margin-bottom: 52px;
+    line-height: 1.5;
+  }
+  .earned-sub strong { color: #1D9E75; }
+  .rewards-row {
+    display: flex;
+    gap: 28px;
+    margin-bottom: 52px;
+    width: 100%;
+  }
+  .reward-card {
+    flex: 1;
+    border-radius: 28px;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+  }
+  .reward-card-xp {
+    background: #FFF8EC;
+    border: 3px solid #EF9F27;
+    box-shadow: 0 4px 20px rgba(239,159,39,0.15);
+  }
+  .reward-card-streak {
+    background: #FFF4F0;
+    border: 3px solid #D85A30;
+    box-shadow: 0 4px 20px rgba(216,90,48,0.15);
+  }
+  .reward-icon { font-size: 52px; }
+  .reward-value { font-size: 52px; font-weight: 900; }
+  .xp-val { color: #EF9F27; }
+  .streak-val { color: #D85A30; }
+  .reward-label { font-size: 26px; color: #888; font-weight: 600; text-align: center; }
+  .unlock-info {
+    background: #E8FBF4;
+    border-radius: 28px;
+    padding: 32px 40px;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    margin-bottom: 48px;
+    border: 2px solid rgba(29,158,117,0.2);
+  }
+  .unlock-info-icon { font-size: 48px; }
+  .unlock-info-text { font-size: 30px; color: #1D9E75; font-weight: 600; line-height: 1.5; }
+  .open-btn {
+    background: linear-gradient(135deg, #7F77DD, #6c65c4);
+    color: #fff;
+    border-radius: 44px;
+    padding: 44px 0;
+    width: 100%;
+    font-size: 44px;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(127,119,221,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+  }
+  .app-mini {
+    width: 64px; height: 64px;
+    border-radius: 16px;
+    background: linear-gradient(135deg, #833ab4, #fd1d1d, #fcb045);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+  }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="caption-banner">Screen time you actually deserved.</div>
+
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <span class="status-icons">▲ ◆ ▌▌ 87%</span>
+  </div>
+
+  <div class="confetti-area">
+    <!-- Confetti dots -->
+    <div class="confetti-dot" style="width:24px;height:24px;background:#EF9F27;top:80px;left:80px;transform:rotate(20deg);border-radius:6px;"></div>
+    <div class="confetti-dot" style="width:18px;height:18px;background:#7F77DD;top:60px;left:260px;"></div>
+    <div class="confetti-dot" style="width:20px;height:20px;background:#1D9E75;top:100px;right:120px;transform:rotate(-15deg);border-radius:4px;"></div>
+    <div class="confetti-dot" style="width:14px;height:14px;background:#D85A30;top:44px;right:280px;"></div>
+    <div class="confetti-dot" style="width:22px;height:22px;background:#EF9F27;top:180px;left:44px;transform:rotate(30deg);border-radius:4px;"></div>
+    <div class="confetti-dot" style="width:16px;height:16px;background:#7F77DD;top:160px;right:60px;transform:rotate(-25deg);border-radius:4px;"></div>
+
+    <div class="success-ring">
+      <span class="success-icon">✅</span>
+      <span class="star-burst" style="top:-20px;left:40px;">⭐</span>
+      <span class="star-burst" style="top:10px;right:-24px;">✨</span>
+      <span class="star-burst" style="bottom:0;right:0;">🌟</span>
+    </div>
+
+    <div class="earned-heading">You earned it! 🎉</div>
+    <div class="earned-sub">
+      All 3 questions answered correctly.<br>
+      <strong>Instagram is now unlocked!</strong>
+    </div>
+
+    <div class="rewards-row">
+      <div class="reward-card reward-card-xp">
+        <span class="reward-icon">⚡</span>
+        <span class="reward-value xp-val">+30 XP</span>
+        <span class="reward-label">XP Earned</span>
+      </div>
+      <div class="reward-card reward-card-streak">
+        <span class="reward-icon">🔥</span>
+        <span class="reward-value streak-val">3 🗓</span>
+        <span class="reward-label">Day Streak</span>
+      </div>
+    </div>
+
+    <div class="unlock-info">
+      <span class="unlock-info-icon">⏱</span>
+      <div class="unlock-info-text">
+        Instagram unlocked<br>
+        <strong>for 30 minutes</strong>
+      </div>
+    </div>
+
+    <div class="open-btn">
+      <div class="app-mini">📸</div>
+      Open Instagram
+    </div>
+  </div>
+</div>
+</body>
+</html>

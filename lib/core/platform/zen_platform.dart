@@ -67,6 +67,7 @@ class ZenPlatform {
     required int sessionEndMillis,
     required bool allowReopenWithinWindow,
     bool fullLock = false,
+    int rewardMinutes = 10,
   }) async {
     if (kIsWeb) return;
     await _channel.invokeMethod('startZenMonitoring', {
@@ -74,6 +75,7 @@ class ZenPlatform {
       'sessionEndMillis': sessionEndMillis,
       'allowReopenWithinWindow': allowReopenWithinWindow,
       'fullLock': fullLock,
+      'rewardMinutes': rewardMinutes,
     });
   }
 

@@ -17,7 +17,6 @@ const _gradB = Color(0xFF00C9A7);
 const _muted = Color(0xFF8E8E93);
 const _separator = Color(0xFF38383A);
 const _white = Color(0xFFFFFFFF);
-const _white60 = Color(0x99FFFFFF);
 
 class AppPickerScreen extends ConsumerStatefulWidget {
   const AppPickerScreen({super.key});
@@ -272,7 +271,7 @@ class _AppPickerScreenState extends ConsumerState<AppPickerScreen> {
                                                     }
                                                   });
                                                 },
-                                                activeColor: _green,
+                                                activeThumbColor: _green,
                                                 activeTrackColor: _green.withValues(alpha: 0.3),
                                                 inactiveThumbColor: _muted,
                                                 inactiveTrackColor: _cardAlt,

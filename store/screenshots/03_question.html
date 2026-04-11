@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EarnYourScreen – Question Screen</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1080px;
+    height: 1920px;
+    background: #1a1a2e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    overflow: hidden;
+  }
+  .phone-frame {
+    width: 1000px;
+    height: 1840px;
+    background: #F1EFE8;
+    border-radius: 80px;
+    border: 8px solid #2a2a3e;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 80px rgba(0,0,0,0.6);
+  }
+  .caption-banner {
+    width: 100%;
+    background: #7F77DD;
+    padding: 32px 48px;
+    text-align: center;
+    color: #fff;
+    font-size: 42px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+  .status-bar {
+    background: #7F77DD;
+    padding: 20px 48px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+  .status-time { color: #fff; font-size: 30px; font-weight: 600; }
+  .status-icons { color: #fff; font-size: 26px; letter-spacing: 6px; }
+  .quiz-header {
+    background: #7F77DD;
+    padding: 28px 48px 40px;
+    flex-shrink: 0;
+  }
+  .quiz-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 28px;
+  }
+  .subject-chip {
+    background: rgba(255,255,255,0.2);
+    color: #fff;
+    border-radius: 24px;
+    padding: 10px 28px;
+    font-size: 28px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .xp-chip {
+    background: #EF9F27;
+    color: #fff;
+    border-radius: 24px;
+    padding: 10px 28px;
+    font-size: 28px;
+    font-weight: 700;
+  }
+  .progress-label {
+    color: rgba(255,255,255,0.9);
+    font-size: 30px;
+    font-weight: 600;
+    margin-bottom: 16px;
+  }
+  .progress-track {
+    background: rgba(255,255,255,0.25);
+    border-radius: 20px;
+    height: 16px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    background: #EF9F27;
+    height: 100%;
+    width: 66%;
+    border-radius: 20px;
+    position: relative;
+  }
+  .progress-fill::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 24px;
+    background: rgba(255,255,255,0.4);
+    border-radius: 0 20px 20px 0;
+  }
+  .progress-dots {
+    display: flex;
+    gap: 16px;
+    margin-top: 20px;
+  }
+  .prog-dot {
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.3);
+  }
+  .prog-dot.done { background: #EF9F27; }
+  .prog-dot.current {
+    background: #fff;
+    box-shadow: 0 0 0 5px rgba(255,255,255,0.3);
+  }
+  .wave {
+    width: 100%;
+    height: 50px;
+    background: #7F77DD;
+    flex-shrink: 0;
+    position: relative;
+  }
+  .wave::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 50px;
+    background: #F1EFE8;
+    border-radius: 50px 50px 0 0;
+  }
+  .content {
+    flex: 1;
+    padding: 48px 48px 32px;
+    display: flex;
+    flex-direction: column;
+  }
+  .question-card {
+    background: #fff;
+    border-radius: 36px;
+    padding: 52px 48px;
+    margin-bottom: 36px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+  }
+  .question-number {
+    font-size: 26px;
+    color: #7F77DD;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 20px;
+  }
+  .question-text {
+    font-size: 44px;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1.35;
+  }
+  .answers-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    flex: 1;
+  }
+  .answer-card {
+    background: #fff;
+    border-radius: 28px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 3px solid #e8e5df;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+    flex-direction: column;
+    gap: 12px;
+    min-height: 180px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .answer-card.selected {
+    background: #7F77DD;
+    border-color: #7F77DD;
+    box-shadow: 0 8px 32px rgba(127,119,221,0.4);
+  }
+  .answer-letter {
+    font-size: 26px;
+    font-weight: 700;
+    color: #bbb;
+    position: absolute;
+    top: 20px;
+    left: 28px;
+  }
+  .answer-card.selected .answer-letter { color: rgba(255,255,255,0.6); }
+  .answer-value {
+    font-size: 56px;
+    font-weight: 800;
+    color: #1a1a2e;
+  }
+  .answer-card.selected .answer-value { color: #fff; }
+  .check-icon {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    font-size: 32px;
+    display: none;
+  }
+  .answer-card.selected .check-icon { display: block; }
+  .next-btn {
+    background: linear-gradient(135deg, #7F77DD, #6c65c4);
+    color: #fff;
+    border-radius: 44px;
+    padding: 44px 0;
+    width: 100%;
+    font-size: 40px;
+    font-weight: 800;
+    text-align: center;
+    box-shadow: 0 12px 40px rgba(127,119,221,0.4);
+    margin-top: 32px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+<div class="phone-frame">
+  <div class="caption-banner">Answer to unlock.</div>
+
+  <div class="status-bar">
+    <span class="status-time">9:41</span>
+    <span class="status-icons">▲ ◆ ▌▌ 87%</span>
+  </div>
+
+  <div class="quiz-header">
+    <div class="quiz-top-row">
+      <div class="subject-chip">📐 Math</div>
+      <div class="xp-chip">⚡ +10 XP</div>
+    </div>
+    <div class="progress-label">Question 2 of 3</div>
+    <div class="progress-track">
+      <div class="progress-fill"></div>
+    </div>
+    <div class="progress-dots">
+      <div class="prog-dot done"></div>
+      <div class="prog-dot current"></div>
+      <div class="prog-dot"></div>
+    </div>
+  </div>
+
+  <div class="wave"></div>
+
+  <div class="content">
+    <div class="question-card">
+      <div class="question-number">Question 2 of 3</div>
+      <div class="question-text">What is the square root of 144?</div>
+    </div>
+
+    <div class="answers-grid">
+      <div class="answer-card">
+        <span class="answer-letter">A</span>
+        <span class="check-icon">✓</span>
+        <span class="answer-value">10</span>
+      </div>
+      <div class="answer-card selected">
+        <span class="answer-letter">B</span>
+        <span class="check-icon">✓</span>
+        <span class="answer-value">12</span>
+      </div>
+      <div class="answer-card">
+        <span class="answer-letter">C</span>
+        <span class="check-icon">✓</span>
+        <span class="answer-value">14</span>
+      </div>
+      <div class="answer-card">
+        <span class="answer-letter">D</span>
+        <span class="check-icon">✓</span>
+        <span class="answer-value">16</span>
+      </div>
+    </div>
+
+    <div class="next-btn">Next Question →</div>
+  </div>
+</div>
+</body>
+</html>

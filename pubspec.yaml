@@ -1,5 +1,5 @@
 name: math_lock
-description: "A new Flutter project."
+description: "Earn Your Screen — solve a math problem to unlock blocked apps and build focus habits."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -54,9 +54,9 @@ dev_dependencies:
 flutter_launcher_icons:
   android: true
   ios: false
-  image_path: "assets/priorityflow_logo.jpg"
-  adaptive_icon_background: "#0D0D12"
-  adaptive_icon_foreground: "assets/priorityflow_logo.jpg"
+  image_path: "assets/logo.png"
+  adaptive_icon_background: "#000000"
+  adaptive_icon_foreground: "assets/logo.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -70,6 +70,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/logo.png
     - assets/priorityflow_logo.jpg
 
   # To add assets to your application, add an assets section, like this:

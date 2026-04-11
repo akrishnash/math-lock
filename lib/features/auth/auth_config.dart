@@ -14,5 +14,5 @@
 abstract final class AuthConfig {
   /// OAuth 2.0 Web client ID from Firebase (required for Android + Firebase Auth).
   /// Leave null only for iOS or if you use a different setup.
-  static const String? webClientId = '908300702285-27olq4ng7nuarpjg42mni5t2hsleemod.apps.googleusercontent.com';
+  static const String webClientId = '908300702285-27olq4ng7nuarpjg42mni5t2hsleemod.apps.googleusercontent.com';
 }

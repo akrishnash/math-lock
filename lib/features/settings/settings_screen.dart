@@ -14,8 +14,6 @@ const _card = Color(0xFF1C1C1E);
 const _cardAlt = Color(0xFF2C2C2E);
 const _green = Color(0xFF30D158);
 const _red = Color(0xFFFF3B30);
-const _gradA = Color(0xFFB3FF6E);
-const _gradB = Color(0xFF00C9A7);
 const _muted = Color(0xFF8E8E93);
 const _separator = Color(0xFF38383A);
 const _white = Color(0xFFFFFFFF);
@@ -93,7 +91,7 @@ class SettingsScreen extends ConsumerWidget {
           _sectionHeader('TIMING'),
           _sliverCard(children: [
             _StepperRow(
-              label: 'Penalty',
+              label: 'Penalty (future)',
               icon: Icons.warning_amber_rounded,
               iconColor: _red,
               value: settings.penaltyMinutes,
@@ -329,7 +327,7 @@ class _ToggleRow extends StatelessWidget {
           Switch(
             value: value,
             onChanged: onChanged,
-            activeColor: _green,
+            activeThumbColor: _green,
             activeTrackColor: _green.withValues(alpha: 0.3),
             inactiveThumbColor: _muted,
             inactiveTrackColor: _cardAlt,

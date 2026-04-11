@@ -252,12 +252,10 @@ class _PillButton extends StatelessWidget {
   const _PillButton({
     required this.label,
     required this.onPressed,
-    this.primary = true,
     this.loading = false,
   });
   final String label;
   final VoidCallback? onPressed;
-  final bool primary;
   final bool loading;
 
   @override
@@ -268,20 +266,19 @@ class _PillButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: primary ? _white : Colors.transparent,
-          foregroundColor: primary ? const Color(0xFF0B1827) : _white,
+          backgroundColor: _white,
+          foregroundColor: const Color(0xFF0B1827),
           elevation: 0,
           shape: const StadiumBorder(),
-          side: primary ? BorderSide.none : const BorderSide(color: _white40, width: 1.5),
           padding: const EdgeInsets.symmetric(vertical: 16),
         ),
         child: loading
-            ? SizedBox(
+            ? const SizedBox(
                 width: 22,
                 height: 22,
                 child: CircularProgressIndicator(
                   strokeWidth: 2.5,
-                  color: primary ? const Color(0xFF0B1827) : _white,
+                  color: Color(0xFF0B1827),
                 ),
               )
             : Text(
@@ -362,7 +359,7 @@ class _WelcomeStep extends StatelessWidget {
           ),
           const SizedBox(height: 32),
           Text(
-            'Math Lock',
+            'Earn Your Screen',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               color: _white,
