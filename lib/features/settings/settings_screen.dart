@@ -9,6 +9,19 @@ import '../auth/auth_service.dart';
 import '../problems/topic_registry.dart';
 import 'settings_state.dart';
 
+// ── design tokens ─────────────────────────────────────────────────────────────
+const _black = Color(0xFF000000);
+const _card = Color(0xFF1C1C1E);
+const _cardAlt = Color(0xFF2C2C2E);
+const _green = Color(0xFF30D158);
+const _red = Color(0xFFFF3B30);
+const _gradA = Color(0xFFB3FF6E);
+const _gradB = Color(0xFF00C9A7);
+const _muted = Color(0xFF8E8E93);
+const _separator = Color(0xFF38383A);
+const _white = Color(0xFFFFFFFF);
+const _white60 = Color(0x99FFFFFF);
+
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
@@ -18,417 +31,496 @@ class SettingsScreen extends ConsumerWidget {
     final notifier = ref.read(settingsProvider.notifier);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.offWhite),
-          onPressed: () => context.pop(),
-        ),
-        title: Text(
-          'SETTINGS',
-          style: GoogleFonts.spaceMono(
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            color: AppColors.offWhite,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        children: [
-          _sectionLabel('QUESTION TOPIC'),
-          const SizedBox(height: 12),
-          _topicGrid(settings.questionTopic, (topic) => notifier.setQuestionTopic(topic)),
-          const SizedBox(height: 24),
-          _sectionLabel('DIFFICULTY LEVEL'),
-          const SizedBox(height: 12),
-          _difficultyRow(settings.problemDifficulty, (d) => notifier.setProblemDifficulty(d)),
-          const SizedBox(height: 24),
-          _sectionLabel('PROBLEM TYPE'),
-          const SizedBox(height: 12),
-          _problemTypeRow(settings.problemType, (t) => notifier.setProblemType(t)),
-          const SizedBox(height: 24),
-          _sectionLabel('LOCK MODE'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: _selectChip(
-                  label: 'Block apps',
-                  selected: settings.lockMode == LockMode.apps,
-                  onTap: () => notifier.setLockMode(LockMode.apps),
-                ),
+      backgroundColor: _black,
+      body: CustomScrollView(
+        slivers: [
+          SliverAppBar(
+            backgroundColor: _black,
+            surfaceTintColor: Colors.transparent,
+            pinned: true,
+            elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: _white, size: 20),
+              onPressed: () => context.pop(),
+            ),
+            title: Text(
+              'Settings',
+              style: GoogleFonts.inter(
+                fontSize: 17,
+                fontWeight: FontWeight.w600,
+                color: _white,
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _selectChip(
-                  label: 'Lock phone',
-                  selected: settings.lockMode == LockMode.full,
-                  onTap: () => notifier.setLockMode(LockMode.full),
-                ),
+            ),
+            centerTitle: true,
+          ),
+
+          // ── Challenge ─────────────────────────────────────────────────────
+          _sectionHeader('CHALLENGE'),
+          _sliverCard(children: [
+            _SegmentRow(
+              label: 'Topic',
+              icon: Icons.school_rounded,
+              options: TopicRegistry.topicIds,
+              labelOf: (id) => TopicRegistry.label(id),
+              current: settings.questionTopic,
+              onChanged: notifier.setQuestionTopic,
+              wrap: true,
+            ),
+            _divider(),
+            _SegmentRow(
+              label: 'Difficulty',
+              icon: Icons.bolt_rounded,
+              options: const ['easy', 'medium'],
+              labelOf: (v) => v[0].toUpperCase() + v.substring(1),
+              current: settings.problemDifficulty == ProblemDifficulty.easy ? 'easy' : 'medium',
+              onChanged: (v) => notifier.setProblemDifficulty(
+                v == 'medium' ? ProblemDifficulty.medium : ProblemDifficulty.easy,
               ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('PENALTY (Minutes added for wrong answer)'),
-          const SizedBox(height: 12),
-          _stepper(
-            value: settings.penaltyMinutes,
-            min: 1,
-            max: 30,
-            onDecrement: () => notifier.setPenaltyMinutes((settings.penaltyMinutes - 1).clamp(1, 30)),
-            onIncrement: () => notifier.setPenaltyMinutes((settings.penaltyMinutes + 1).clamp(1, 30)),
-            valueColor: AppColors.neonPink,
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('REWARD (Minutes of access for correct answer)'),
-          const SizedBox(height: 12),
-          _stepper(
-            value: settings.rewardDurationMinutes,
-            min: 1,
-            max: 60,
-            onDecrement: () => notifier.setRewardDurationMinutes((settings.rewardDurationMinutes - 1).clamp(1, 60)),
-            onIncrement: () => notifier.setRewardDurationMinutes((settings.rewardDurationMinutes + 1).clamp(1, 60)),
-            valueColor: AppColors.neonPurple,
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('ZEN SESSION DURATION (minutes)'),
-          const SizedBox(height: 12),
-          _stepper(
-            value: settings.sessionDurationMinutes,
-            min: 15,
-            max: 480,
-            step: 15,
-            onDecrement: () {
-              final v = ((settings.sessionDurationMinutes - 15).clamp(0, 480) ~/ 15) * 15;
-              notifier.setSessionDurationMinutes(v < 15 ? 15 : v);
-            },
-            onIncrement: () {
-              final v = ((settings.sessionDurationMinutes + 15).clamp(15, 480) ~/ 15) * 15;
-              notifier.setSessionDurationMinutes(v > 480 ? 480 : v);
-            },
-            valueColor: AppColors.neonCyan,
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('ACCENT COLOR'),
-          const SizedBox(height: 12),
-          _accentColorRow(settings.accentColorKey, notifier.setAccentColorKey),
-          const SizedBox(height: 24),
-          _sectionLabel('FEEDBACK'),
-          const SizedBox(height: 12),
-          _toggleRow(
-            'Enable Sounds',
-            settings.enableSounds,
-            (v) => notifier.setEnableSounds(v),
-          ),
-          const SizedBox(height: 8),
-          _toggleRow(
-            'Enable Vibration',
-            settings.enableVibration,
-            (v) => notifier.setEnableVibration(v),
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('UNLOCK BEHAVIOR'),
-          const SizedBox(height: 12),
-          _toggleRow(
-            'Allow reopen during unlock window',
-            settings.allowReopenWithinWindow,
-            (v) => notifier.setAllowReopenWithinWindow(v),
-          ),
-          const SizedBox(height: 24),
-          _sectionLabel('ACCOUNT'),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton(
-              onPressed: () async {
+            ),
+            _divider(),
+            _SegmentRow(
+              label: 'Problem type',
+              icon: Icons.functions_rounded,
+              options: const ['linear', 'integration'],
+              labelOf: (v) => v[0].toUpperCase() + v.substring(1),
+              current: settings.problemType == ProblemType.linear ? 'linear' : 'integration',
+              onChanged: (v) => notifier.setProblemType(
+                v == 'integration' ? ProblemType.integration : ProblemType.linear,
+              ),
+            ),
+          ]),
+
+          // ── Timing ───────────────────────────────────────────────────────
+          _sectionHeader('TIMING'),
+          _sliverCard(children: [
+            _StepperRow(
+              label: 'Penalty',
+              icon: Icons.warning_amber_rounded,
+              iconColor: _red,
+              value: settings.penaltyMinutes,
+              unit: 'min',
+              min: 1,
+              max: 30,
+              onDecrement: () => notifier.setPenaltyMinutes(
+                (settings.penaltyMinutes - 1).clamp(1, 30),
+              ),
+              onIncrement: () => notifier.setPenaltyMinutes(
+                (settings.penaltyMinutes + 1).clamp(1, 30),
+              ),
+            ),
+            _divider(),
+            _StepperRow(
+              label: 'Reward window',
+              icon: Icons.timer_rounded,
+              iconColor: _green,
+              value: settings.rewardDurationMinutes,
+              unit: 'min',
+              min: 1,
+              max: 60,
+              onDecrement: () => notifier.setRewardDurationMinutes(
+                (settings.rewardDurationMinutes - 1).clamp(1, 60),
+              ),
+              onIncrement: () => notifier.setRewardDurationMinutes(
+                (settings.rewardDurationMinutes + 1).clamp(1, 60),
+              ),
+            ),
+          ]),
+
+          // ── Lock mode ─────────────────────────────────────────────────────
+          _sectionHeader('LOCK MODE'),
+          _sliverCard(children: [
+            _SegmentRow(
+              label: 'Mode',
+              icon: Icons.lock_rounded,
+              options: const ['apps', 'phone'],
+              labelOf: (v) => v == 'apps' ? 'Block apps' : 'Lock phone',
+              current: settings.lockMode == LockMode.apps ? 'apps' : 'phone',
+              onChanged: (v) => notifier.setLockMode(
+                v == 'phone' ? LockMode.full : LockMode.apps,
+              ),
+            ),
+          ]),
+
+          // ── Feedback ─────────────────────────────────────────────────────
+          _sectionHeader('FEEDBACK'),
+          _sliverCard(children: [
+            _ToggleRow(
+              label: 'Sounds',
+              icon: Icons.volume_up_rounded,
+              value: settings.enableSounds,
+              onChanged: notifier.setEnableSounds,
+            ),
+            _divider(),
+            _ToggleRow(
+              label: 'Vibration',
+              icon: Icons.vibration_rounded,
+              value: settings.enableVibration,
+              onChanged: notifier.setEnableVibration,
+            ),
+            _divider(),
+            _ToggleRow(
+              label: 'Allow reopen in unlock window',
+              icon: Icons.restart_alt_rounded,
+              value: settings.allowReopenWithinWindow,
+              onChanged: notifier.setAllowReopenWithinWindow,
+            ),
+          ]),
+
+          // ── Accent color ──────────────────────────────────────────────────
+          _sectionHeader('ACCENT COLOR'),
+          _sliverCard(children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  ...AppColors.accentColors.entries.map((e) {
+                    final selected = settings.accentColorKey == e.key;
+                    return GestureDetector(
+                      onTap: () => notifier.setAccentColorKey(e.key),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        margin: const EdgeInsets.only(right: 12),
+                        width: selected ? 44 : 36,
+                        height: selected ? 44 : 36,
+                        decoration: BoxDecoration(
+                          color: e.value,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: selected ? _white : Colors.transparent,
+                            width: 3,
+                          ),
+                          boxShadow: selected
+                              ? [BoxShadow(color: e.value.withValues(alpha: 0.6), blurRadius: 12)]
+                              : null,
+                        ),
+                        child: selected
+                            ? const Icon(Icons.check_rounded, color: _black, size: 18)
+                            : null,
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ]),
+
+          // ── Account ───────────────────────────────────────────────────────
+          _sectionHeader('ACCOUNT'),
+          _sliverCard(children: [
+            InkWell(
+              borderRadius: BorderRadius.circular(14),
+              onTap: () async {
                 await ref.read(authSkippedProvider.notifier).setSkipped(false);
                 await AuthService.signOut();
                 if (context.mounted) context.go('/login');
               },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.mutedForeground,
-                side: const BorderSide(color: AppColors.mutedForeground),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              child: Text(
-                'Sign out',
-                style: GoogleFonts.inter(fontSize: 16),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: _red.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.logout_rounded, color: _red, size: 18),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Sign out',
+                        style: GoogleFonts.inter(
+                          fontSize: 15,
+                          color: _red,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () => context.pop(),
-              icon: const Icon(Icons.save, size: 24),
-              label: Text(
-                'SAVE SETTINGS',
-                style: GoogleFonts.spaceMono(fontSize: 16),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.neonGreen,
-                foregroundColor: AppColors.background,
-                padding: const EdgeInsets.symmetric(vertical: 24),
-                side: const BorderSide(color: AppColors.offWhite, width: 4),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
+          ]),
+
+          const SliverToBoxAdapter(child: SizedBox(height: 40)),
         ],
       ),
     );
   }
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: GoogleFonts.spaceMono(
-        fontSize: 14,
-        color: AppColors.offWhite,
-        letterSpacing: 1,
-      ),
-    );
-  }
-
-  Widget _topicGrid(String current, ValueChanged<String> onSelected) {
-    final topics = TopicRegistry.topicIds;
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 8,
-      crossAxisSpacing: 8,
-      childAspectRatio: 2.5,
-      children: topics.map((topic) {
-        final selected = current == topic;
-        return Material(
-          color: selected ? AppColors.neonPink : AppColors.surface,
-          child: InkWell(
-            onTap: () => onSelected(topic),
-            child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: selected ? AppColors.neonPink : AppColors.offWhite,
-                  width: 4,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  TopicRegistry.label(topic).toUpperCase(),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.offWhite,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _difficultyRow(ProblemDifficulty current, ValueChanged<ProblemDifficulty> onSelected) {
-    return Row(
-      children: [
-        _selectChip(
-          label: 'EASY',
-          selected: current == ProblemDifficulty.easy,
-          onTap: () => onSelected(ProblemDifficulty.easy),
-        ),
-        const SizedBox(width: 8),
-        _selectChip(
-          label: 'MEDIUM',
-          selected: current == ProblemDifficulty.medium,
-          accentColor: AppColors.neonCyan,
-          onTap: () => onSelected(ProblemDifficulty.medium),
-        ),
-      ],
-    );
-  }
-
-  Widget _problemTypeRow(ProblemType current, ValueChanged<ProblemType> onSelected) {
-    return Row(
-      children: [
-        _selectChip(
-          label: 'LINEAR',
-          selected: current == ProblemType.linear,
-          onTap: () => onSelected(ProblemType.linear),
-        ),
-        const SizedBox(width: 8),
-        _selectChip(
-          label: 'INTEGRATION',
-          selected: current == ProblemType.integration,
-          onTap: () => onSelected(ProblemType.integration),
-        ),
-      ],
-    );
-  }
-
-  Widget _selectChip({
-    required String label,
-    required bool selected,
-    Color? accentColor,
-    required VoidCallback onTap,
-  }) {
-    final color = accentColor ?? AppColors.neonPink;
-    return Expanded(
-      child: Material(
-        color: selected ? color : AppColors.surface,
-        child: InkWell(
-          onTap: onTap,
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              border: Border.all(
-                color: selected ? color : AppColors.offWhite,
-                width: 4,
-              ),
-            ),
-            child: Center(
-              child: Text(
-                label,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: selected ? (color == AppColors.neonCyan ? AppColors.background : AppColors.offWhite) : AppColors.offWhite,
-                ),
-              ),
-            ),
+  static Widget _sectionHeader(String title) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
+        child: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: _muted,
+            letterSpacing: 1.2,
           ),
         ),
       ),
     );
   }
 
-  Widget _stepper({
-    required int value,
-    required int min,
-    required int max,
-    int step = 1,
-    required VoidCallback onDecrement,
-    required VoidCallback onIncrement,
-    required Color valueColor,
-  }) {
-    return Row(
-      children: [
-        _stepperButton('-', onDecrement),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: Border.all(color: AppColors.offWhite, width: 4),
-            ),
-            child: Center(
-              child: Text(
-                '$value',
-                style: GoogleFonts.spaceMono(
-                  fontSize: 32,
-                  color: valueColor,
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 16),
-        _stepperButton('+', onIncrement),
-      ],
-    );
-  }
-
-  Widget _stepperButton(String label, VoidCallback onTap) {
-    return Material(
-      color: AppColors.surface,
-      child: InkWell(
-        onTap: onTap,
+  static Widget _sliverCard({required List<Widget> children}) {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         child: Container(
-          width: 48,
-          height: 48,
           decoration: BoxDecoration(
-            border: Border.all(color: AppColors.offWhite, width: 4),
+            color: _card,
+            borderRadius: BorderRadius.circular(16),
           ),
-          child: Center(
-            child: Text(
-              label,
-              style: GoogleFonts.spaceMono(
-                fontSize: 24,
-                color: AppColors.offWhite,
-              ),
-            ),
-          ),
+          child: Column(children: children),
         ),
       ),
     );
   }
 
-  Widget _accentColorRow(String currentKey, ValueChanged<String> onSelected) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: AppColors.accentColors.entries.map((e) {
-        final selected = currentKey == e.key;
-        return GestureDetector(
-          onTap: () => onSelected(e.key),
-          child: Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: e.value,
-              border: Border.all(
-                color: AppColors.offWhite,
-                width: selected ? 4 : 2,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
+  static Widget _divider() {
+    return Container(
+      height: 0.5,
+      margin: const EdgeInsets.only(left: 60),
+      color: _separator,
     );
   }
+}
 
-  Widget _toggleRow(String label, bool value, ValueChanged<bool> onChanged) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.offWhite, width: 4),
-      ),
+// ── reusable row widgets ──────────────────────────────────────────────────────
+
+class _ToggleRow extends StatelessWidget {
+  const _ToggleRow({
+    required this.label,
+    required this.icon,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final IconData icon;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _cardAlt,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _white60, size: 17),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
-              style: GoogleFonts.inter(color: AppColors.offWhite),
+              style: GoogleFonts.inter(fontSize: 15, color: _white),
+            ),
+          ),
+          Switch(
+            value: value,
+            onChanged: onChanged,
+            activeColor: _green,
+            activeTrackColor: _green.withValues(alpha: 0.3),
+            inactiveThumbColor: _muted,
+            inactiveTrackColor: _cardAlt,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepperRow extends StatelessWidget {
+  const _StepperRow({
+    required this.label,
+    required this.icon,
+    required this.iconColor,
+    required this.value,
+    required this.unit,
+    required this.min,
+    required this.max,
+    required this.onDecrement,
+    required this.onIncrement,
+  });
+
+  final String label;
+  final IconData icon;
+  final Color iconColor;
+  final int value;
+  final String unit;
+  final int min;
+  final int max;
+  final VoidCallback onDecrement;
+  final VoidCallback onIncrement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 17),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              label,
+              style: GoogleFonts.inter(fontSize: 15, color: _white),
+            ),
+          ),
+          _StepButton(
+            icon: Icons.remove_rounded,
+            onTap: value <= min ? null : onDecrement,
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 52,
+            child: Text(
+              '$value $unit',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: _white,
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          GestureDetector(
-            onTap: () => onChanged(!value),
-            child: Container(
-              width: 56,
-              height: 32,
-              decoration: BoxDecoration(
-                color: value ? AppColors.neonYellow : AppColors.switchBg,
-                border: Border.all(color: AppColors.offWhite, width: 4),
-              ),
-              child: Align(
-                alignment: value ? Alignment.centerRight : Alignment.centerLeft,
-                child: Container(
-                  width: 24,
-                  height: 24,
-                  margin: const EdgeInsets.all(2),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    border: Border.all(color: AppColors.offWhite, width: 2),
-                  ),
+          _StepButton(
+            icon: Icons.add_rounded,
+            onTap: value >= max ? null : onIncrement,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StepButton extends StatelessWidget {
+  const _StepButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onTap != null;
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 30,
+        height: 30,
+        decoration: BoxDecoration(
+          color: enabled ? _cardAlt : _cardAlt.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Icon(
+          icon,
+          color: enabled ? _white : _muted,
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+class _SegmentRow extends StatelessWidget {
+  const _SegmentRow({
+    required this.label,
+    required this.icon,
+    required this.options,
+    required this.labelOf,
+    required this.current,
+    required this.onChanged,
+    this.wrap = false,
+  });
+
+  final String label;
+  final IconData icon;
+  final List<String> options;
+  final String Function(String) labelOf;
+  final String current;
+  final ValueChanged<String> onChanged;
+  final bool wrap;
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = options.map((o) {
+      final selected = current == o;
+      return GestureDetector(
+        onTap: () => onChanged(o),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? _white : _cardAlt,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Text(
+            labelOf(o),
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: selected ? _black : _muted,
+            ),
+          ),
+        ),
+      );
+    }).toList();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: _cardAlt,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: _white60, size: 17),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: GoogleFonts.inter(fontSize: 15, color: _white),
                 ),
-              ),
+                const SizedBox(height: 10),
+                wrap
+                    ? Wrap(spacing: 8, runSpacing: 8, children: chips)
+                    : Row(children: [
+                        for (int i = 0; i < chips.length; i++) ...[
+                          chips[i],
+                          if (i < chips.length - 1) const SizedBox(width: 8),
+                        ]
+                      ]),
+              ],
             ),
           ),
         ],

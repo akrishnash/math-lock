@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../core/theme/app_colors.dart';
 import '../../core/platform/zen_platform.dart';
 import '../../core/utils/app_log.dart' as app_log;
 import '../settings/settings_state.dart';
@@ -14,6 +13,17 @@ import '../stats/stats_state.dart';
 import 'models/challenge_question.dart';
 import 'providers/question_providers.dart';
 import 'topic_registry.dart';
+
+// ── design tokens ─────────────────────────────────────────────────────────────
+const _black = Color(0xFF000000);
+const _card = Color(0xFF1C1C1E);
+const _cardAlt = Color(0xFF2C2C2E);
+const _red = Color(0xFFFF3B30);
+const _gradA = Color(0xFFB3FF6E);
+const _gradB = Color(0xFF00C9A7);
+const _muted = Color(0xFF8E8E93);
+const _white = Color(0xFFFFFFFF);
+const _white60 = Color(0x99FFFFFF);
 
 const String _fullLockPackage = '_full';
 
@@ -38,13 +48,17 @@ class ProblemScreen extends ConsumerStatefulWidget {
   ConsumerState<ProblemScreen> createState() => _ProblemScreenState();
 }
 
-class _ProblemScreenState extends ConsumerState<ProblemScreen> {
+class _ProblemScreenState extends ConsumerState<ProblemScreen>
+    with SingleTickerProviderStateMixin {
   late ProblemScreenArgs _args;
   ChallengeQuestion? _question;
   String _input = '';
   String? _selectedOption;
   bool _checking = false;
   bool _showError = false;
+
+  late AnimationController _shakeController;
+  late Animation<double> _shakeAnimation;
 
   @override
   void initState() {
@@ -55,7 +69,22 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
       rewardMinutes: 2,
     );
     app_log.log('Challenge', 'initState: appLabel=${_args.appLabel} rewardMinutes=${_args.rewardMinutes}');
+
+    _shakeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 400),
+    );
+    _shakeAnimation = Tween<double>(begin: 0, end: 1).animate(
+      CurvedAnimation(parent: _shakeController, curve: Curves.elasticIn),
+    );
+
     _generate();
+  }
+
+  @override
+  void dispose() {
+    _shakeController.dispose();
+    super.dispose();
   }
 
   void _generate() {
@@ -97,22 +126,63 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text(
-          'Great!',
-          style: GoogleFonts.spaceMono(color: AppColors.offWhite),
-        ),
-        content: Text(
-          '$mins minutes grace for you. Enjoy yourself.',
-          style: GoogleFonts.inter(color: AppColors.offWhite),
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Enjoy'),
+      builder: (ctx) => Dialog(
+        backgroundColor: _card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(colors: [_gradA, _gradB]),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(Icons.check_rounded, color: _black, size: 36),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Unlocked!',
+                style: GoogleFonts.inter(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w700,
+                  color: _white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$mins minutes of access. Use it wisely.',
+                style: GoogleFonts.inter(fontSize: 15, color: _muted),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              GestureDetector(
+                onTap: () => Navigator.of(ctx).pop(),
+                child: Container(
+                  width: double.infinity,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [_gradA, _gradB]),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Center(
+                    child: Text(
+                      'Enjoy',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: _black,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
     if (!mounted) return;
@@ -179,7 +249,8 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
       _checking = false;
       _showError = true;
     });
-    await Future<void>.delayed(const Duration(milliseconds: 1200));
+    _shakeController.forward(from: 0);
+    await Future<void>.delayed(const Duration(milliseconds: 1400));
     if (!mounted) return;
     setState(() => _showError = false);
     _generate();
@@ -198,131 +269,158 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
     final q = _question;
     final isMultipleChoice = q?.inputKind == ChallengeInputKind.multipleChoice;
 
-    return Scaffold(
-      backgroundColor: _showError ? AppColors.destructive : AppColors.background,
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        color: _showError ? AppColors.destructive : AppColors.background,
-        child: SafeArea(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 220),
+      color: _showError ? const Color(0xFF2A0000) : _black,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           child: Column(
             children: [
+              // ── header ──────────────────────────────────────────────────
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  decoration: BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: AppColors.offWhite, width: 4),
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+                child: Row(
+                  children: [
+                    Text(
+                      'Prove You Need It',
+                      style: GoogleFonts.inter(
+                        fontSize: 17,
+                        fontWeight: FontWeight.w600,
+                        color: _white,
+                      ),
                     ),
-                  ),
-                  child: Text(
-                    'PROVE YOU NEED IT.',
-                    style: GoogleFonts.spaceMono(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.offWhite,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    children: [
-                      if (_showError) ...[
-                        Container(
-                          margin: const EdgeInsets.only(bottom: 16),
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: AppColors.background,
-                            border: Border.all(color: AppColors.offWhite, width: 4),
-                          ),
-                          child: Text(
-                            'ACCESS DENIED. +$_penaltyMinutes MINS ADDED TO TIMER.',
-                            style: GoogleFonts.spaceMono(
-                              fontSize: 14,
-                              color: AppColors.offWhite,
-                            ),
-                            textAlign: TextAlign.center,
+                    const Spacer(),
+                    if (_showError)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: _red.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '+$_penaltyMinutes min penalty',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: _red,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
-                      ],
-                      _MathPromptCard(
-                        prompt: q?.prompt ?? '',
-                        accentColor: _accentColor,
                       ),
-                      const SizedBox(height: 24),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Column(
+                    children: [
+                      // ── math prompt ──────────────────────────────────────
+                      AnimatedBuilder(
+                        animation: _shakeAnimation,
+                        builder: (context, child) {
+                          final offset = _showError
+                              ? (8 * (0.5 - (_shakeAnimation.value % 1)).abs() * 2 - 4)
+                              : 0.0;
+                          return Transform.translate(
+                            offset: Offset(offset, 0),
+                            child: child,
+                          );
+                        },
+                        child: _MathPromptCard(
+                          prompt: q?.prompt ?? '',
+                          accentColor: _showError ? _red : _accentColor,
+                        ),
+                      ),
+
+                      const SizedBox(height: 20),
+
                       if (isMultipleChoice) ...[
                         ...?q?.options.map((opt) {
                           final selected = _selectedOption == opt;
                           return Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: Material(
-                                color: selected ? _accentColor.withValues(alpha: 0.2) : AppColors.surface,
-                                child: InkWell(
-                                  onTap: _checking ? null : () => setState(() => _selectedOption = opt),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 20),
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: selected ? _accentColor : AppColors.offWhite,
-                                        width: 4,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        opt,
-                                        style: GoogleFonts.inter(
-                                          fontSize: 18,
-                                          color: AppColors.offWhite,
-                                        ),
-                                      ),
-                                    ),
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: GestureDetector(
+                              onTap: _checking ? null : () => setState(() => _selectedOption = opt),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? _accentColor.withValues(alpha: 0.15)
+                                      : _card,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: selected
+                                      ? Border.all(color: _accentColor, width: 1.5)
+                                      : null,
+                                ),
+                                child: Text(
+                                  opt,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 17,
+                                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                                    color: selected ? _accentColor : _white,
                                   ),
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
                           );
                         }),
                       ] else ...[
+                        // ── answer display ──────────────────────────────
                         Container(
-                          padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 24),
                           decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            border: Border.all(color: AppColors.offWhite, width: 4),
+                            color: _card,
+                            borderRadius: BorderRadius.circular(16),
+                            border: _showError
+                                ? Border.all(color: _red.withValues(alpha: 0.6), width: 1.5)
+                                : null,
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                _input,
-                                style: GoogleFonts.spaceMono(
+                                _input.isEmpty ? '0' : _input,
+                                style: GoogleFonts.inter(
                                   fontSize: 48,
-                                  color: _accentColor,
+                                  fontWeight: FontWeight.w600,
+                                  color: _input.isEmpty ? _muted : _accentColor,
+                                  height: 1,
                                 ),
                               ),
-                              Text(
-                                '_',
-                                style: GoogleFonts.spaceMono(
-                                  fontSize: 48,
-                                  color: _accentColor,
+                              AnimatedOpacity(
+                                duration: const Duration(milliseconds: 500),
+                                opacity: _input.isEmpty ? 0 : 1,
+                                child: Text(
+                                  '|',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 48,
+                                    color: _accentColor,
+                                    height: 1,
+                                  ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+
+                        const SizedBox(height: 16),
+
+                        // ── numpad ───────────────────────────────────────
                         GridView.count(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           crossAxisCount: 3,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 1.8,
+                          mainAxisSpacing: 10,
+                          crossAxisSpacing: 10,
+                          childAspectRatio: 1.6,
                           children: [
                             '7', '8', '9',
                             '4', '5', '6',
@@ -330,50 +428,72 @@ class _ProblemScreenState extends ConsumerState<ProblemScreen> {
                             '-', '0', 'DEL',
                           ].map((key) {
                             final isDel = key == 'DEL';
-                            return Material(
-                              color: AppColors.surface,
-                              child: InkWell(
-                                onTap: _checking ? null : () => _onKeyPress(key),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    border: Border.all(color: AppColors.offWhite, width: 4),
-                                    color: isDel ? AppColors.surface : null,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      key,
-                                      style: GoogleFonts.spaceMono(
-                                        fontSize: 24,
-                                        color: isDel ? AppColors.destructive : AppColors.offWhite,
-                                      ),
-                                    ),
-                                  ),
+                            return GestureDetector(
+                              onTap: _checking ? null : () => _onKeyPress(key),
+                              child: Container(
+                                decoration: BoxDecoration(
+                                  color: isDel
+                                      ? _red.withValues(alpha: 0.12)
+                                      : _card,
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: Center(
+                                  child: isDel
+                                      ? const Icon(Icons.backspace_rounded, color: _red, size: 22)
+                                      : Text(
+                                          key,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 22,
+                                            fontWeight: FontWeight.w500,
+                                            color: _white,
+                                          ),
+                                        ),
                                 ),
                               ),
                             );
                           }).toList(),
                         ),
                       ],
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton(
-                          onPressed: (_checking || !_hasAnswer) ? null : _submit,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: !_hasAnswer ? AppColors.muted : _accentColor,
-                            foregroundColor: !_hasAnswer ? AppColors.disabled : AppColors.background,
-                            padding: const EdgeInsets.symmetric(vertical: 24),
-                            side: BorderSide(
-                              color: !_hasAnswer ? AppColors.disabled : AppColors.offWhite,
-                              width: 4,
+
+                      const SizedBox(height: 20),
+
+                      // ── submit ───────────────────────────────────────────
+                      GestureDetector(
+                        onTap: (_checking || !_hasAnswer) ? null : _submit,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 200),
+                          opacity: _hasAnswer ? 1.0 : 0.4,
+                          child: Container(
+                            width: double.infinity,
+                            height: 58,
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(colors: [_gradA, _gradB]),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                          ),
-                          child: Text(
-                            'SUBMIT ANSWER',
-                            style: GoogleFonts.spaceMono(fontSize: 16),
+                            child: Center(
+                              child: _checking
+                                  ? const SizedBox(
+                                      width: 22,
+                                      height: 22,
+                                      child: CircularProgressIndicator(
+                                        color: _black,
+                                        strokeWidth: 2.5,
+                                      ),
+                                    )
+                                  : Text(
+                                      'Submit Answer',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w700,
+                                        color: _black,
+                                      ),
+                                    ),
+                            ),
                           ),
                         ),
                       ),
+
+                      const SizedBox(height: 32),
                     ],
                   ),
                 ),
@@ -400,8 +520,8 @@ class _MathPromptCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.offWhite, width: 4),
+        color: _card,
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         children: [
@@ -409,9 +529,9 @@ class _MathPromptCard extends StatelessWidget {
             _isIntegral ? 'EVALUATE THE INTEGRAL' : 'SOLVE FOR x',
             style: GoogleFonts.inter(
               fontSize: 11,
-              letterSpacing: 2.5,
-              color: accentColor,
+              letterSpacing: 2,
               fontWeight: FontWeight.w600,
+              color: accentColor,
             ),
           ),
           const SizedBox(height: 20),
@@ -423,9 +543,7 @@ class _MathPromptCard extends StatelessWidget {
 
   Widget _buildMathText() {
     if (_isIntegral) {
-      // Render ∫ larger, rest normal
       final parts = prompt.split(' ');
-      // parts[0] = '∫', rest is the expression
       final rest = parts.sublist(1).join(' ');
       return RichText(
         textAlign: TextAlign.center,
@@ -433,17 +551,17 @@ class _MathPromptCard extends StatelessWidget {
           children: [
             TextSpan(
               text: '∫ ',
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 fontSize: 48,
-                color: AppColors.offWhite,
+                color: _white,
                 height: 1,
               ),
             ),
             TextSpan(
               text: rest,
-              style: GoogleFonts.spaceMono(
+              style: GoogleFonts.inter(
                 fontSize: 26,
-                color: AppColors.offWhite,
+                color: _white,
                 height: 1.5,
               ),
             ),
@@ -453,9 +571,10 @@ class _MathPromptCard extends StatelessWidget {
     }
     return Text(
       prompt,
-      style: GoogleFonts.spaceMono(
+      style: GoogleFonts.inter(
         fontSize: 28,
-        color: AppColors.offWhite,
+        fontWeight: FontWeight.w600,
+        color: _white,
         height: 1.4,
       ),
       textAlign: TextAlign.center,
