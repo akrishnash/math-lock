@@ -43,6 +43,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   late final AnimationController _orbCtrl;
   late final Animation<double> _orbAnim;
 
+  // Permission flow state — tracks sequential auto-open of settings pages
+  bool _permissionFlowActive = false;
+
   @override
   void initState() {
     super.initState();
@@ -74,8 +77,54 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     super.didChangeAppLifecycleState(state);
     app_log.log('Home', 'lifecycle: $state');
     if (state == AppLifecycleState.resumed) {
-      _checkPendingUnlockIntent(from: 'resumed');
+      if (_permissionFlowActive) {
+        // User returned from a settings page — open the next missing one
+        _continuePermissionFlow();
+      } else {
+        _checkPendingUnlockIntent(from: 'resumed');
+      }
     }
+  }
+
+  /// Called each time user returns from a system settings page.
+  /// Automatically opens the next missing permission or shows "all set".
+  Future<void> _continuePermissionFlow() async {
+    if (!mounted) return;
+    final settings = ref.read(settingsProvider);
+    final usage = await ZenPlatform.hasUsageStatsPermission();
+    final overlay = await ZenPlatform.hasOverlayPermission();
+    final needsNotif = settings.lockMode == LockMode.apps;
+    final notif = needsNotif
+        ? await ZenPlatform.hasNotificationListenerPermission()
+        : true;
+
+    if (!usage) {
+      await ZenPlatform.openUsageAccessSettings();
+      return;
+    }
+    if (!overlay) {
+      await ZenPlatform.openOverlaySettings();
+      return;
+    }
+    if (!notif) {
+      await ZenPlatform.openNotificationListenerSettings();
+      return;
+    }
+
+    // All permissions granted
+    _permissionFlowActive = false;
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'All set! Tap Block Now to start your session.',
+          style: GoogleFonts.inter(color: _white),
+        ),
+        backgroundColor: const Color(0xFF1C1C1E),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
   }
 
   Future<void> _checkPendingUnlockIntent({required String from}) async {
@@ -107,8 +156,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       return;
     }
     final user = ref.read(authStateProvider).valueOrNull;
-    final skipped = ref.read(authSkippedProvider);
-    if (user == null && !skipped && mounted) {
+    if (user == null && mounted) {
       app_log.log('Home', 'no pending intent, not auth -> /login');
       context.go('/login');
     }
@@ -138,41 +186,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         : true;
     if (usage && overlay && notification) return true;
 
-    final missing = <String>[];
-    if (!usage) missing.add('Usage Access');
-    if (!overlay) missing.add('Display Over Other Apps');
-    if (!notification) missing.add('Notification Access');
-
     if (!mounted) return false;
-    final go = await showDialog<bool>(
+
+    // Build friendly list of what's still needed
+    final items = <_PermissionItem>[];
+    if (!usage) {
+      items.add(const _PermissionItem(
+        icon: Icons.bar_chart_rounded,
+        title: 'App usage monitoring',
+        description: 'Lets the app know which app you opened so it can show the math challenge.',
+      ));
+    }
+    if (!overlay) {
+      items.add(const _PermissionItem(
+        icon: Icons.layers_rounded,
+        title: 'Show challenge screen',
+        description: 'Allows the math problem to appear on top of other apps when you try to open one.',
+      ));
+    }
+    if (!notification) {
+      items.add(const _PermissionItem(
+        icon: Icons.notifications_rounded,
+        title: 'Session notifications',
+        description: 'Sends a notification when your focus session starts or ends.',
+      ));
+    }
+
+    final confirmed = await showModalBottomSheet<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: _card,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Permissions needed',
-          style: GoogleFonts.inter(color: _white, fontWeight: FontWeight.w600),
-        ),
-        content: Text(
-          '${missing.join(', ')} ${missing.length > 1 ? 'are' : 'is'} required to block apps.',
-          style: GoogleFonts.inter(color: _muted, fontSize: 14),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Later', style: GoogleFonts.inter(color: _muted)),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(
-              'Open Settings',
-              style: GoogleFonts.inter(color: _gradB, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => _PermissionSheet(items: items),
     );
-    if (go == true) {
+
+    if (confirmed == true) {
+      _permissionFlowActive = true;
+      // Open first missing permission settings
       if (!usage) {
         await ZenPlatform.openUsageAccessSettings();
       } else if (!overlay) {
@@ -1483,5 +1532,148 @@ class _StatDivider extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(width: 1, height: 36, color: _separator);
+  }
+}
+
+// ── Permission bottom sheet ────────────────────────────────────────────────────
+
+class _PermissionItem {
+  const _PermissionItem({
+    required this.icon,
+    required this.title,
+    required this.description,
+  });
+  final IconData icon;
+  final String title;
+  final String description;
+}
+
+class _PermissionSheet extends StatelessWidget {
+  const _PermissionSheet({required this.items});
+  final List<_PermissionItem> items;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 12, 24, 36),
+      decoration: const BoxDecoration(
+        color: Color(0xFF1C1C1E),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // drag handle
+          Center(
+            child: Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: const Color(0xFF48484A),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          Text(
+            'Quick setup needed',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'To block apps, we need a few Android permissions. We\'ll walk you through each one — it only takes a minute.',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              color: const Color(0xFF8E8E93),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 24),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF2C2C2E),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(item.icon, color: _gradA, size: 22),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.title,
+                            style: GoogleFonts.inter(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            item.description,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: const Color(0xFF8E8E93),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(true),
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [_gradA, _gradB],
+                ),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Center(
+                child: Text(
+                  'Set Up Permissions',
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(false),
+            child: Center(
+              child: Text(
+                'Not now',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: const Color(0xFF8E8E93),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

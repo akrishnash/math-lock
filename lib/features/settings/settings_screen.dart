@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/theme/app_colors.dart';
-import '../auth/auth_state.dart';
 import '../auth/auth_service.dart';
 import '../problems/topic_registry.dart';
 import 'settings_state.dart';
@@ -210,7 +209,6 @@ class SettingsScreen extends ConsumerWidget {
             InkWell(
               borderRadius: BorderRadius.circular(14),
               onTap: () async {
-                await ref.read(authSkippedProvider.notifier).setSkipped(false);
                 await AuthService.signOut();
                 if (context.mounted) context.go('/login');
               },

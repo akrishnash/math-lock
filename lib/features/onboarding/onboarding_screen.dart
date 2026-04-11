@@ -6,7 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/constants/storage_keys.dart';
 import '../auth/auth_service.dart';
-import '../auth/auth_state.dart';
 import '../settings/settings_state.dart';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
@@ -137,13 +136,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     }
   }
 
-  Future<void> _finishWithoutAccount() async {
-    if (_saving) return;
-    setState(() => _saving = true);
-    await ref.read(authSkippedProvider.notifier).setSkipped(true);
-    await _complete();
-  }
-
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -213,7 +205,6 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
                     _SignInStep(
                       saving: _saving,
                       onSignIn: _signInAndFinish,
-                      onSkip: _finishWithoutAccount,
                     ),
                   ],
                 ),
@@ -897,11 +888,9 @@ class _SignInStep extends StatelessWidget {
   const _SignInStep({
     required this.saving,
     required this.onSignIn,
-    required this.onSkip,
   });
   final bool saving;
   final VoidCallback onSignIn;
-  final VoidCallback onSkip;
 
   @override
   Widget build(BuildContext context) {
@@ -935,7 +924,7 @@ class _SignInStep extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           Text(
-            'Sign in to sync your stats and settings across devices. You can always skip this.',
+            'Sign in to save your progress and sync settings across devices.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(color: _white70, fontSize: 14, height: 1.6),
           ),
@@ -945,16 +934,10 @@ class _SignInStep extends StatelessWidget {
             onPressed: saving ? null : onSignIn,
             loading: saving,
           ),
-          const SizedBox(height: 12),
-          _PillButton(
-            label: 'Continue without account',
-            onPressed: saving ? null : onSkip,
-            primary: false,
-          ),
           const SizedBox(height: 20),
           Center(
             child: Text(
-              'You can sign in later from settings',
+              'Free to use · No spam · Secure sign-in',
               style: GoogleFonts.inter(color: _white40, fontSize: 12),
             ),
           ),
